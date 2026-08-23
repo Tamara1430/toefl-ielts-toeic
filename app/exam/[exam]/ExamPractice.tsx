@@ -24,7 +24,7 @@ interface ReadingData {
 
 interface ListeningData {
   title: string;
-  turns: { speaker: string; text: string }[];
+  turns: { speaker: string; text: string; audioUrl?: string }[];
   questions: McqQuestion[];
 }
 

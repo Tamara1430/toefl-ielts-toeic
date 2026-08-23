@@ -1,5 +1,6 @@
 import { getGroqClient } from "@/lib/groqClient";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { generateAndCacheListeningAudio } from "@/lib/audioGeneration";
 import {
   ExamType,
   SectionType,
@@ -119,6 +120,21 @@ export async function generateAndStoreQuestion(
     .single();
 
   if (error) throw new Error(`Gagal simpan soal ke database: ${error.message}`);
+
+  // Listening questions get their audio generated & cached right away, so the
+  // very first user to play it doesn't hit a live Groq TTS call — and neither
+  // does anyone after them, since the audio URL is now baked into the payload.
+  if (section === "listening") {
+    try {
+      await generateAndCacheListeningAudio(data.id, payload);
+    } catch (e) {
+      // Don't fail question creation just because audio caching hiccuped —
+      // DialoguePlayer falls back to live TTS, and the admin "Generate Voices"
+      // button can backfill it later.
+      console.error(`Audio caching failed for question ${data.id}:`, e);
+    }
+  }
+
   return data.id as string;
 }
 
@@ -142,18 +158,26 @@ export interface TopUpResult {
   errors: string[];
 }
 
+// Stay comfortably under Vercel's function duration limit regardless of exact
+// plan/config — if a run is taking too long, stop and let the next manual
+// click or cron tick continue where it left off.
+const TIME_BUDGET_MS = 250_000;
+
 /**
  * Check every (exam, section, difficulty) combo's stock; generate a small batch
  * for any combo below MIN_POOL_SIZE, capped so no combo exceeds MAX_POOL_SIZE.
- * Used by both the manual "Generate Now" admin action and the hourly cron.
+ * Used by both the manual "Generate Umum" admin action and the hourly cron.
  */
 export async function topUpAllPools(): Promise<TopUpResult[]> {
   const admin = createAdminClient();
   const results: TopUpResult[] = [];
+  const startedAt = Date.now();
 
-  for (const exam of ALL_EXAMS) {
+  outer: for (const exam of ALL_EXAMS) {
     for (const section of ALL_SECTIONS) {
       for (const difficulty of ALL_DIFFICULTIES) {
+        if (Date.now() - startedAt > TIME_BUDGET_MS) break outer;
+
         const { count } = await admin
           .from("questions")
           .select("id", { count: "exact", head: true })
@@ -169,6 +193,7 @@ export async function topUpAllPools(): Promise<TopUpResult[]> {
           const batch = Math.max(0, Math.min(TOP_UP_BATCH, room));
 
           for (let i = 0; i < batch; i++) {
+            if (Date.now() - startedAt > TIME_BUDGET_MS) break;
             try {
               await generateAndStoreQuestion(exam, section, difficulty);
               result.generated++;
@@ -184,4 +209,45 @@ export async function topUpAllPools(): Promise<TopUpResult[]> {
   }
 
   return results;
+}
+
+/**
+ * Generate a specific number of questions for ONE (exam, section, difficulty)
+ * combo, regardless of MIN_POOL_SIZE — lets an admin prioritize a particular
+ * combo (e.g. "I need TOEFL Listening Advanced questions right now") instead
+ * of waiting for the general top-up to get to it.
+ */
+export async function topUpOne(
+  exam: ExamType,
+  section: SectionType,
+  difficulty: Difficulty,
+  count: number
+): Promise<TopUpResult> {
+  const admin = createAdminClient();
+  const startedAt = Date.now();
+
+  const { count: existing } = await admin
+    .from("questions")
+    .select("id", { count: "exact", head: true })
+    .eq("exam", exam)
+    .eq("section", section)
+    .eq("difficulty", difficulty);
+
+  const before = existing ?? 0;
+  const result: TopUpResult = { exam, section, difficulty, before, generated: 0, errors: [] };
+
+  const room = MAX_POOL_SIZE - before;
+  const batch = Math.max(0, Math.min(count, room));
+
+  for (let i = 0; i < batch; i++) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+    try {
+      await generateAndStoreQuestion(exam, section, difficulty);
+      result.generated++;
+    } catch (e: any) {
+      result.errors.push(e.message ?? String(e));
+    }
+  }
+
+  return result;
 }

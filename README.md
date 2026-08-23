@@ -56,6 +56,7 @@ Semua ini otomatis aman dari ke-commit ke Git karena `.gitignore` sudah meng-ign
 1. Buat akun & project baru di [supabase.com](https://supabase.com) (gratis).
 2. Buka **SQL Editor** → New query → paste seluruh isi file `supabase/schema.sql` → **Run**.
    Ini membuat semua tabel (`profiles`, `questions`, `user_seen_questions`, `practice_sessions`), proteksi RLS, dan trigger otomatis bikin profil user baru.
+3. Buka **SQL Editor** lagi (New query, JANGAN pakai tab yang sama dengan langkah 2) → paste isi `supabase/storage.sql` → **Run**. Ini bikin storage bucket `tts-audio` untuk cache audio listening.
 3. Buka **Authentication → Users → Add user**. Buat akun pertamamu (email + password) — ini akan jadi admin.
 4. Balik ke **SQL Editor**, jalankan (ganti email-nya):
    ```sql
@@ -121,6 +122,21 @@ Untuk **menonaktifkan** user (misal telat bayar), tinggal klik badge "Aktif" di 
 
 ---
 
+## Cache Audio Listening (biar hemat token)
+
+Sebelumnya audio TTS listening dibuat **live setiap kali** ada yang klik play — kalau 50 user dengar soal yang sama, Groq TTS kepanggil 50x untuk audio yang identik. Sekarang:
+
+- Saat soal listening baru digenerate (manual atau via cron), audionya **langsung dibuat sekali dan disimpan** ke Supabase Storage (bucket `tts-audio`). URL-nya ditempel ke data soal.
+- User yang play soal itu, siapa pun dan berapa kali pun, tinggal load audio yang sudah ada — tidak trigger Groq TTS lagi.
+- Kalau ada soal listening lama (dibuat sebelum fitur ini ada) atau audionya gagal ke-generate karena suatu error, tinggal klik **"Generate Voices"** di admin panel — ini scan semua soal listening yang audionya belum lengkap, lalu bikinkan yang kurang. Aman diklik berkali-kali (soal yang sudah lengkap otomatis di-skip).
+
+## Generate Umum vs Generate Spesifik
+
+Di halaman `/admin`, sekarang ada 2 cara trigger generate soal manual:
+
+- **Generate Umum** — cek semua 27 kombinasi (3 exam × 3 section × 3 kesulitan), top-up otomatis yang stoknya di bawah ambang batas. Ini juga yang dijalankan `pg_cron` tiap jam.
+- **Generate Spesifik** — pilih 1 kombinasi tertentu + jumlah soal, langsung generate tanpa peduli ambang batas. Cocok kalau kamu mau prioritaskan (misal "saya butuh 10 soal TOEFL Speaking Advanced sekarang juga buat sesi user besok pagi").
+
 ## Kontrol biaya bank soal
 
 Diatur di `lib/questionGeneration.ts`:
@@ -150,6 +166,7 @@ Groq cukup sering mempensiunkan model lama — kalau muncul error `model_not_fou
 ```
 supabase/
   schema.sql                    → skema database lengkap (jalankan sekali di awal)
+  storage.sql                   → setup bucket audio TTS (jalankan sekali di awal)
   cron.sql                      → setup pg_cron auto top-up (jalankan setelah deploy)
 middleware.ts                   → proteksi route: wajib login, cek akun aktif, cek admin
 app/
@@ -158,20 +175,21 @@ app/
   pending/page.tsx              → tampil kalau akun belum diaktifkan admin
   latihan/page.tsx               → menu pilih exam
   progress/page.tsx              → progress gabungan lintas exam
-  admin/                         → admin panel (layout, stok soal, kelola user)
+  admin/                         → admin panel: stok soal, generate umum/spesifik/voices, kelola user
   exam/[exam]/ExamPractice.tsx   → UI latihan, ambil soal dari bank + UI "stok habis"
-  api/admin/                     → endpoint admin (stok, generate manual, kelola user)
+  api/admin/                     → endpoint admin (stok, generate manual/spesifik/voices, kelola user)
   api/cron/generate/route.ts     → endpoint dipanggil pg_cron, auto top-up bank soal
   api/practice/question/route.ts → ambil 1 soal acak belum pernah dilihat user
   api/practice/complete/route.ts → catat hasil sesi ke practice_sessions
-  api/tts, api/stt, api/feedback → tetap real-time (suara asli user)
+  api/tts, api/stt, api/feedback → tetap real-time (suara asli user, fallback TTS soal lama)
 components/
   BottomNav.tsx, McqQuestions.tsx, DialoguePlayer.tsx, AudioRecorder.tsx,
   SpeakingSession.tsx, SessionHistory.tsx, LogoutButton.tsx
 lib/
   supabase/client.ts, server.ts, admin.ts  → 3 jenis Supabase client (browser/server/service-role)
   serverAuth.ts                  → helper requireAdmin() / requireUser() untuk API routes
-  questionGeneration.ts          → logika generate + top-up bank soal (dipakai admin & cron)
+  questionGeneration.ts          → logika generate + top-up (umum & spesifik), dipakai admin & cron
+  audioGeneration.ts             → generate + cache audio TTS listening ke Supabase Storage
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
   history.ts                     → baca/tulis riwayat sesi (sekarang dari Supabase)
   gamification.ts                → hitung streak, XP/level, badge
@@ -184,5 +202,4 @@ lib/
 
 - **Ganti password sendiri** oleh user (sekarang admin yang set password awal)
 - **Payment gateway otomatis** (Midtrans/Xendit) — sekarang manual oleh admin sesuai permintaanmu
-- **Cache audio TTS** per soal listening supaya tidak generate ulang suara tiap kali soal yang sama diputar user berbeda (saat ini TTS tetap live tiap play — biayanya jauh lebih kecil dari generate soal teks, tapi bisa dioptimasi lebih lanjut kalau volume pemakaian sudah besar)
 - **Auto-nonaktifkan** user yang `paid_until` sudah lewat (sekarang murni field informatif, belum ada logic otomatis mematikan akses)

@@ -7,6 +7,7 @@ import { ORPHEUS_VOICE_POOL } from "@/lib/examConfig";
 export interface DialogueTurn {
   speaker: string;
   text: string;
+  audioUrl?: string;
 }
 
 interface Props {
@@ -70,6 +71,11 @@ export default function DialoguePlayer({ turns }: Props) {
   }
 
   async function fetchTurnAudioUrl(turn: DialogueTurn): Promise<string> {
+    // Prefer the pre-generated, cached audio (baked into the question at
+    // generation time) — this avoids a live Groq TTS call on every playback.
+    if (turn.audioUrl) return turn.audioUrl;
+
+    // Fallback for older questions generated before audio caching existed.
     const voice = speakerMap.get(turn.speaker)?.voice;
     const res = await fetch("/api/tts", {
       method: "POST",
