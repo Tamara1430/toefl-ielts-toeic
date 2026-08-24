@@ -40,6 +40,38 @@ export async function finishJob(jobId: string | null | undefined, status: JobSta
   const admin = createAdminClient();
   await admin
     .from("generation_jobs")
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status, current_step: null, updated_at: new Date().toISOString() })
     .eq("id", jobId);
+}
+
+/** Called right before starting each individual item (one question, or one
+ * listening turn's audio) — this is what powers the live "sedang generate ..."
+ * indicator in the admin panel. Pass null to clear it once done. */
+export async function setJobProgress(
+  jobId: string | null | undefined,
+  step: Record<string, unknown> | null
+) {
+  if (!jobId) return;
+  const admin = createAdminClient();
+  await admin
+    .from("generation_jobs")
+    .update({ current_step: step, updated_at: new Date().toISOString() })
+    .eq("id", jobId);
+}
+
+export interface JobRow {
+  id: string;
+  kind: JobKind;
+  status: JobStatus;
+  current_step: Record<string, unknown> | null;
+}
+
+export async function getJob(jobId: string): Promise<JobRow | null> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("generation_jobs")
+    .select("id, kind, status, current_step")
+    .eq("id", jobId)
+    .single();
+  return (data as JobRow) ?? null;
 }

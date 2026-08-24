@@ -1,7 +1,7 @@
 import { getGroqClient } from "@/lib/groqClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GROQ_TTS_MODEL, ORPHEUS_VOICE_POOL } from "@/lib/examConfig";
-import { isJobCancelled } from "@/lib/generationJobs";
+import { isJobCancelled, setJobProgress } from "@/lib/generationJobs";
 
 export interface DialogueTurn {
   speaker: string;
@@ -63,6 +63,13 @@ export async function generateAndCacheListeningAudio(
     // starts after cancel is clicked. Whatever's completed so far is still
     // persisted below, so the next "Generate Voices" run picks up the rest.
     if (await isJobCancelled(jobId)) break;
+    await setJobProgress(jobId, {
+      questionId,
+      title: payload.title,
+      speaker: turns[i].speaker,
+      turnIndex: i + 1,
+      totalTurns: turns.length,
+    });
     try {
       const voice = voiceMap.get(turns[i].speaker) ?? ORPHEUS_VOICE_POOL[0];
       const response = await groq.audio.speech.create({

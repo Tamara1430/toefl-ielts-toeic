@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/serverAuth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndCacheListeningAudio } from "@/lib/audioGeneration";
-import { isJobCancelled, finishJob } from "@/lib/generationJobs";
+import { isJobCancelled, finishJob, setJobProgress } from "@/lib/generationJobs";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -59,8 +59,7 @@ export async function POST(req: NextRequest) {
   if (jobId) {
     if (cancelled) await finishJob(jobId, "cancelled");
     else if (remaining === 0) await finishJob(jobId, "completed");
-    // else: still running (more batches to go) — leave status as 'running'
-    // so the client's next batch call can keep using the same jobId.
+    else await setJobProgress(jobId, null); // batch done, clear until next batch starts
   }
 
   return NextResponse.json({

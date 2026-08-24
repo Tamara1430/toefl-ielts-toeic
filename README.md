@@ -57,7 +57,8 @@ Semua ini otomatis aman dari ke-commit ke Git karena `.gitignore` sudah meng-ign
 2. Buka **SQL Editor** → New query → paste seluruh isi file `supabase/schema.sql` → **Run**.
    Ini membuat semua tabel (`profiles`, `questions`, `user_seen_questions`, `practice_sessions`), proteksi RLS, dan trigger otomatis bikin profil user baru.
 3. Buka **SQL Editor** lagi (New query, JANGAN pakai tab yang sama dengan langkah 2) → paste isi `supabase/storage.sql` → **Run**. Ini bikin storage bucket `tts-audio` untuk cache audio listening.
-4. Buka **SQL Editor** lagi (New query baru lagi) → paste isi `supabase/jobs.sql` → **Run**. Ini bikin tabel yang dipakai tombol "Batalkan" di admin panel untuk generate soal/voices.
+4. Buka **SQL Editor** lagi (New query baru lagi) → paste isi `supabase/jobs.sql` → **Run**. Ini bikin tabel yang dipakai tombol "Batalkan" & live progress di admin panel untuk generate soal/voices.
+   - Kalau kamu sudah pernah menjalankan `jobs.sql` versi lama (sebelum ada live progress), jalankan juga `supabase/jobs-update.sql` sekali untuk menambahkan kolom yang kurang.
 3. Buka **Authentication → Users → Add user**. Buat akun pertamamu (email + password) — ini akan jadi admin.
 4. Balik ke **SQL Editor**, jalankan (ganti email-nya):
    ```sql
@@ -148,6 +149,16 @@ Ketiga aksi generate manual (Generate Umum, Generate Spesifik, Generate Voices) 
 
 Mekanismenya pakai tabel `generation_jobs` di database sebagai penanda status (`running`/`cancelled`/`completed`), dicek oleh server di antara tiap item sebelum lanjut ke item berikutnya.
 
+## Live Progress — pantau soal mana yang sedang digenerate
+
+Selama Generate Umum/Spesifik/Voices berjalan, admin panel menampilkan:
+
+- **Badge live** di atas tombol, contoh: "Sedang generate: TOEFL / Reading / Menengah (2/4)" untuk soal, atau "Sedang generate suara: [judul] — Woman (giliran 3/6)" untuk audio.
+- **Baris tabel stok** yang sedang diproses ikut ditandai (ikon berkedip + background biru muda).
+- **Klik baris mana pun** di tabel stok untuk buka daftar soal di kombinasi itu — tiap soal listening menampilkan status audio-nya (misal "4/6 audio" berwarna kuning kalau belum lengkap, hijau kalau sudah semua), dan soal yang **sedang diproses saat itu juga** ditandai badge "sedang diproses".
+
+Cara kerja: server update kolom `current_step` di tabel `generation_jobs` sesaat sebelum mulai memproses tiap item, client polling status itu tiap 1.5 detik selama proses berjalan.
+
 ## Kontrol biaya bank soal
 
 Diatur di `lib/questionGeneration.ts`:
@@ -180,6 +191,7 @@ supabase/
   schema.sql                    → skema database lengkap (jalankan sekali di awal)
   storage.sql                   → setup bucket audio TTS (jalankan sekali di awal)
   jobs.sql                      → tabel kontrol batalkan generate (jalankan sekali di awal)
+  jobs-update.sql               → tambahan kolom live progress (hanya kalau sudah pernah run jobs.sql versi lama)
   cron.sql                      → setup pg_cron auto top-up (jalankan setelah deploy)
 middleware.ts                   → proteksi route: wajib login, cek akun aktif, cek admin
 app/
@@ -197,7 +209,7 @@ app/
   api/tts, api/stt, api/feedback → tetap real-time (suara asli user, fallback TTS soal lama)
 components/
   BottomNav.tsx, McqQuestions.tsx, DialoguePlayer.tsx, AudioRecorder.tsx,
-  SpeakingSession.tsx, SessionHistory.tsx, LogoutButton.tsx
+  SpeakingSession.tsx, SessionHistory.tsx, LogoutButton.tsx, AdminQuestionList.tsx
 lib/
   supabase/client.ts, server.ts, admin.ts  → 3 jenis Supabase client (browser/server/service-role)
   serverAuth.ts                  → helper requireAdmin() / requireUser() untuk API routes

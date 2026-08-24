@@ -1,7 +1,7 @@
 import { getGroqClient } from "@/lib/groqClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndCacheListeningAudio } from "@/lib/audioGeneration";
-import { isJobCancelled } from "@/lib/generationJobs";
+import { isJobCancelled, setJobProgress } from "@/lib/generationJobs";
 import {
   ExamType,
   SectionType,
@@ -196,6 +196,13 @@ export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
             // in-flight when cancel is clicked finishes normally and gets
             // saved; nothing new starts after that.
             if (await isJobCancelled(jobId)) break;
+            await setJobProgress(jobId, {
+              exam,
+              section,
+              difficulty,
+              index: i + 1,
+              total: TOP_UP_BATCH,
+            });
             try {
               await generateAndStoreQuestion(exam, section, difficulty);
               result.generated++;
@@ -210,6 +217,7 @@ export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
     }
   }
 
+  await setJobProgress(jobId, null);
   return results;
 }
 
@@ -242,6 +250,7 @@ export async function topUpOne(
   for (let i = 0; i < count; i++) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
     if (await isJobCancelled(jobId)) break;
+    await setJobProgress(jobId, { exam, section, difficulty, index: i + 1, total: count });
     try {
       await generateAndStoreQuestion(exam, section, difficulty);
       result.generated++;
@@ -250,5 +259,6 @@ export async function topUpOne(
     }
   }
 
+  await setJobProgress(jobId, null);
   return result;
 }

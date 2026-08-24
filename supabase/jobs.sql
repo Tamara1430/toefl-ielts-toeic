@@ -7,6 +7,7 @@ create table if not exists public.generation_jobs (
   id uuid primary key default gen_random_uuid(),
   kind text not null check (kind in ('questions', 'voices')),
   status text not null default 'running' check (status in ('running', 'cancelled', 'completed')),
+  current_step jsonb,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
