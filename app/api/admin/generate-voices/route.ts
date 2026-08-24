@@ -22,8 +22,9 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: listeningQs, error } = await admin
     .from("questions")
-    .select("id, payload")
-    .eq("section", "listening");
+    .select("id, payload, created_at")
+    .eq("section", "listening")
+    .order("created_at", { ascending: true }); // deterministic: oldest first, not arbitrary DB order
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
