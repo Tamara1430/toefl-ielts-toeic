@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/serverAuth";
 import { topUpOne } from "@/lib/questionGeneration";
+import { isJobCancelled, finishJob } from "@/lib/generationJobs";
 import { ExamType, SectionType, Difficulty } from "@/lib/examConfig";
 
 export const runtime = "nodejs";
@@ -12,11 +13,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const { exam, section, difficulty, count } = (await req.json()) as {
+  const { exam, section, difficulty, count, jobId } = (await req.json()) as {
     exam: ExamType;
     section: SectionType;
     difficulty: Difficulty;
     count: number;
+    jobId?: string;
   };
 
   if (!exam || !section || !difficulty || !count || count < 1) {
@@ -24,9 +26,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await topUpOne(exam, section, difficulty, Math.min(count, 20));
-    return NextResponse.json({ result });
+    const result = await topUpOne(exam, section, difficulty, Math.min(count, 20), jobId);
+    const cancelled = await isJobCancelled(jobId);
+    await finishJob(jobId, cancelled ? "cancelled" : "completed");
+    return NextResponse.json({ result, cancelled });
   } catch (err: any) {
+    await finishJob(jobId, "cancelled");
     console.error("generate-specific error:", err);
     return NextResponse.json({ error: err?.message ?? "Gagal generate." }, { status: 500 });
   }

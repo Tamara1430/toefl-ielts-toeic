@@ -9,7 +9,7 @@ import {
   SectionType,
   Difficulty,
 } from "@/lib/examConfig";
-import { Sparkles, Loader2, RefreshCw, AlertTriangle, Volume2, Target } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, AlertTriangle, Volume2, Target, X } from "lucide-react";
 
 interface StockRow {
   exam: ExamType;
@@ -22,26 +22,44 @@ const exams: ExamType[] = ["toefl", "ielts", "toeic"];
 const sections: SectionType[] = ["reading", "listening", "speaking"];
 const difficulties: Difficulty[] = ["beginner", "intermediate", "advanced"];
 
+async function createJob(kind: "questions" | "voices"): Promise<string> {
+  const res = await fetch("/api/admin/jobs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ kind }),
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || "Gagal membuat job.");
+  return json.jobId as string;
+}
+
+async function cancelJob(jobId: string) {
+  await fetch(`/api/admin/jobs/${jobId}/cancel`, { method: "POST" });
+}
+
 export default function AdminStockPage() {
   const [stock, setStock] = useState<StockRow[]>([]);
   const [minPoolSize, setMinPoolSize] = useState(12);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Generate umum (top-up semua kombinasi yang stoknya menipis)
+  // Generate umum
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [allJobId, setAllJobId] = useState<string | null>(null);
   const [lastResultAll, setLastResultAll] = useState<string | null>(null);
 
-  // Generate spesifik (1 kombinasi, jumlah bebas)
+  // Generate spesifik
   const [specExam, setSpecExam] = useState<ExamType>("toefl");
   const [specSection, setSpecSection] = useState<SectionType>("reading");
   const [specDifficulty, setSpecDifficulty] = useState<Difficulty>("intermediate");
   const [specCount, setSpecCount] = useState(5);
   const [generatingSpecific, setGeneratingSpecific] = useState(false);
+  const [specJobId, setSpecJobId] = useState<string | null>(null);
   const [lastResultSpecific, setLastResultSpecific] = useState<string | null>(null);
 
-  // Generate voices (backfill audio listening yang belum ke-cache)
+  // Generate voices
   const [generatingVoices, setGeneratingVoices] = useState(false);
+  const [voicesJobId, setVoicesJobId] = useState<string | null>(null);
   const [voiceProgress, setVoiceProgress] = useState<{ processed: number; total: number } | null>(
     null
   );
@@ -71,16 +89,26 @@ export default function AdminStockPage() {
     setGeneratingAll(true);
     setError(null);
     setLastResultAll(null);
+    let jobId: string | null = null;
     try {
-      const res = await fetch("/api/admin/generate", { method: "POST" });
+      jobId = await createJob("questions");
+      setAllJobId(jobId);
+      const res = await fetch("/api/admin/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jobId }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal generate.");
-      setLastResultAll(`${json.totalGenerated} soal baru ditambahkan.`);
+      setLastResultAll(
+        `${json.totalGenerated} soal baru ditambahkan.${json.cancelled ? " (dibatalkan — sisanya belum diproses)" : ""}`
+      );
       await loadStock();
     } catch (e: any) {
       setError(e.message);
     } finally {
       setGeneratingAll(false);
+      setAllJobId(null);
     }
   }
 
@@ -88,7 +116,10 @@ export default function AdminStockPage() {
     setGeneratingSpecific(true);
     setError(null);
     setLastResultSpecific(null);
+    let jobId: string | null = null;
     try {
+      jobId = await createJob("questions");
+      setSpecJobId(jobId);
       const res = await fetch("/api/admin/generate-specific", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -97,6 +128,7 @@ export default function AdminStockPage() {
           section: specSection,
           difficulty: specDifficulty,
           count: specCount,
+          jobId,
         }),
       });
       const json = await res.json();
@@ -104,14 +136,15 @@ export default function AdminStockPage() {
       const r = json.result;
       setLastResultSpecific(
         `${r.generated} soal baru untuk ${EXAM_LABELS[specExam]} / ${SECTION_LABELS[specSection]} / ${DIFFICULTY_LABELS[specDifficulty]}${
-          r.errors.length ? ` (${r.errors.length} gagal)` : ""
-        }.`
+          json.cancelled ? " (dibatalkan)" : ""
+        }${r.errors.length ? ` — ${r.errors.length} gagal` : ""}.`
       );
       await loadStock();
     } catch (e: any) {
       setError(e.message);
     } finally {
       setGeneratingSpecific(false);
+      setSpecJobId(null);
     }
   }
 
@@ -121,26 +154,37 @@ export default function AdminStockPage() {
     setVoiceErrors([]);
     setVoiceProgress(null);
 
+    let jobId: string | null = null;
     let totalProcessed = 0;
-    let remaining = 1; // dummy, biar loop pertama jalan
+    let remaining = 1; // dummy biar loop pertama jalan
+    let cancelled = false;
 
     try {
-      while (remaining > 0) {
-        const res = await fetch("/api/admin/generate-voices", { method: "POST" });
+      jobId = await createJob("voices");
+      setVoicesJobId(jobId);
+
+      while (remaining > 0 && !cancelled) {
+        const res = await fetch("/api/admin/generate-voices", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobId }),
+        });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || "Gagal generate voices.");
 
         totalProcessed += json.processed;
         remaining = json.remaining;
+        cancelled = json.cancelled;
         setVoiceProgress({ processed: totalProcessed, total: totalProcessed + remaining });
         if (json.errors?.length) setVoiceErrors((prev) => [...prev, ...json.errors]);
 
-        if (json.processed === 0 && remaining > 0) break; // safety: hindari infinite loop
+        if (json.processed === 0 && remaining > 0 && !cancelled) break; // safety
       }
     } catch (e: any) {
       setError(e.message);
     } finally {
       setGeneratingVoices(false);
+      setVoicesJobId(null);
     }
   }
 
@@ -158,7 +202,8 @@ export default function AdminStockPage() {
           <div>
             <h2 className="font-semibold text-neutral-900">Stok Bank Soal</h2>
             <p className="text-xs text-neutral-400">
-              Auto top-up kalau di bawah {minPoolSize} soal per kombinasi (cron tiap jam).
+              Auto top-up kalau di bawah {minPoolSize} soal per kombinasi (cron tiap jam). Tidak
+              ada batas maksimal.
             </p>
           </div>
           <button
@@ -222,14 +267,28 @@ export default function AdminStockPage() {
               Cek semua kombinasi, top-up otomatis yang stoknya di bawah ambang batas.
             </p>
           </div>
-          <button
-            onClick={handleGenerateAll}
-            disabled={generatingAll}
-            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
-          >
-            {generatingAll ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
-            {generatingAll ? "Generating..." : "Generate Umum"}
-          </button>
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={handleGenerateAll}
+              disabled={generatingAll}
+              className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+            >
+              {generatingAll ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Sparkles size={14} />
+              )}
+              {generatingAll ? "Generating..." : "Generate Umum"}
+            </button>
+            {generatingAll && allJobId && (
+              <button
+                onClick={() => cancelJob(allJobId)}
+                className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+              >
+                <X size={14} /> Batalkan
+              </button>
+            )}
+          </div>
         </div>
         {lastResultAll && <p className="text-xs text-green-700 mt-3">{lastResultAll}</p>}
       </div>
@@ -287,18 +346,28 @@ export default function AdminStockPage() {
             placeholder="Jumlah"
           />
         </div>
-        <button
-          onClick={handleGenerateSpecific}
-          disabled={generatingSpecific}
-          className="flex items-center gap-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
-        >
-          {generatingSpecific ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Sparkles size={14} />
+        <div className="flex gap-2">
+          <button
+            onClick={handleGenerateSpecific}
+            disabled={generatingSpecific}
+            className="flex items-center gap-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+          >
+            {generatingSpecific ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Sparkles size={14} />
+            )}
+            {generatingSpecific ? "Generating..." : "Generate Kombinasi Ini"}
+          </button>
+          {generatingSpecific && specJobId && (
+            <button
+              onClick={() => cancelJob(specJobId)}
+              className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+            >
+              <X size={14} /> Batalkan
+            </button>
           )}
-          {generatingSpecific ? "Generating..." : "Generate Kombinasi Ini"}
-        </button>
+        </div>
         {lastResultSpecific && <p className="text-xs text-green-700 mt-3">{lastResultSpecific}</p>}
       </div>
 
@@ -315,18 +384,28 @@ export default function AdminStockPage() {
               generate), lalu buatkan audionya. Aman dijalankan berkali-kali.
             </p>
           </div>
-          <button
-            onClick={handleGenerateVoices}
-            disabled={generatingVoices}
-            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
-          >
-            {generatingVoices ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <Volume2 size={14} />
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={handleGenerateVoices}
+              disabled={generatingVoices}
+              className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+            >
+              {generatingVoices ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Volume2 size={14} />
+              )}
+              {generatingVoices ? "Memproses..." : "Generate Voices"}
+            </button>
+            {generatingVoices && voicesJobId && (
+              <button
+                onClick={() => cancelJob(voicesJobId)}
+                className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+              >
+                <X size={14} /> Batalkan
+              </button>
             )}
-            {generatingVoices ? "Memproses..." : "Generate Voices"}
-          </button>
+          </div>
         </div>
 
         {voiceProgress && (

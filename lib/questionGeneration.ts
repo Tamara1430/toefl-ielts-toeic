@@ -1,6 +1,7 @@
 import { getGroqClient } from "@/lib/groqClient";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndCacheListeningAudio } from "@/lib/audioGeneration";
+import { isJobCancelled } from "@/lib/generationJobs";
 import {
   ExamType,
   SectionType,
@@ -144,8 +145,6 @@ export const ALL_DIFFICULTIES: Difficulty[] = ["beginner", "intermediate", "adva
 
 /** Minimum pool size per (exam, section, difficulty) combo before auto top-up kicks in. */
 export const MIN_POOL_SIZE = 12;
-/** Never let a pool grow past this — bounds total Groq spend over time. */
-export const MAX_POOL_SIZE = 40;
 /** How many questions to add per top-up run, per combo (kept small to spread cost/time). */
 export const TOP_UP_BATCH = 4;
 
@@ -165,10 +164,11 @@ const TIME_BUDGET_MS = 250_000;
 
 /**
  * Check every (exam, section, difficulty) combo's stock; generate a small batch
- * for any combo below MIN_POOL_SIZE, capped so no combo exceeds MAX_POOL_SIZE.
+ * for any combo below MIN_POOL_SIZE. No upper cap — pools only grow when
+ * actually depleted below the threshold, so cost stays tied to real usage.
  * Used by both the manual "Generate Umum" admin action and the hourly cron.
  */
-export async function topUpAllPools(): Promise<TopUpResult[]> {
+export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
   const admin = createAdminClient();
   const results: TopUpResult[] = [];
   const startedAt = Date.now();
@@ -177,6 +177,7 @@ export async function topUpAllPools(): Promise<TopUpResult[]> {
     for (const section of ALL_SECTIONS) {
       for (const difficulty of ALL_DIFFICULTIES) {
         if (Date.now() - startedAt > TIME_BUDGET_MS) break outer;
+        if (await isJobCancelled(jobId)) break outer;
 
         const { count } = await admin
           .from("questions")
@@ -189,11 +190,12 @@ export async function topUpAllPools(): Promise<TopUpResult[]> {
         const result: TopUpResult = { exam, section, difficulty, before, generated: 0, errors: [] };
 
         if (before < MIN_POOL_SIZE) {
-          const room = MAX_POOL_SIZE - before;
-          const batch = Math.max(0, Math.min(TOP_UP_BATCH, room));
-
-          for (let i = 0; i < batch; i++) {
+          for (let i = 0; i < TOP_UP_BATCH; i++) {
             if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+            // Checked BEFORE starting the next item — whatever's already
+            // in-flight when cancel is clicked finishes normally and gets
+            // saved; nothing new starts after that.
+            if (await isJobCancelled(jobId)) break;
             try {
               await generateAndStoreQuestion(exam, section, difficulty);
               result.generated++;
@@ -221,7 +223,8 @@ export async function topUpOne(
   exam: ExamType,
   section: SectionType,
   difficulty: Difficulty,
-  count: number
+  count: number,
+  jobId?: string
 ): Promise<TopUpResult> {
   const admin = createAdminClient();
   const startedAt = Date.now();
@@ -236,11 +239,9 @@ export async function topUpOne(
   const before = existing ?? 0;
   const result: TopUpResult = { exam, section, difficulty, before, generated: 0, errors: [] };
 
-  const room = MAX_POOL_SIZE - before;
-  const batch = Math.max(0, Math.min(count, room));
-
-  for (let i = 0; i < batch; i++) {
+  for (let i = 0; i < count; i++) {
     if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+    if (await isJobCancelled(jobId)) break;
     try {
       await generateAndStoreQuestion(exam, section, difficulty);
       result.generated++;

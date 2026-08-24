@@ -57,6 +57,7 @@ Semua ini otomatis aman dari ke-commit ke Git karena `.gitignore` sudah meng-ign
 2. Buka **SQL Editor** → New query → paste seluruh isi file `supabase/schema.sql` → **Run**.
    Ini membuat semua tabel (`profiles`, `questions`, `user_seen_questions`, `practice_sessions`), proteksi RLS, dan trigger otomatis bikin profil user baru.
 3. Buka **SQL Editor** lagi (New query, JANGAN pakai tab yang sama dengan langkah 2) → paste isi `supabase/storage.sql` → **Run**. Ini bikin storage bucket `tts-audio` untuk cache audio listening.
+4. Buka **SQL Editor** lagi (New query baru lagi) → paste isi `supabase/jobs.sql` → **Run**. Ini bikin tabel yang dipakai tombol "Batalkan" di admin panel untuk generate soal/voices.
 3. Buka **Authentication → Users → Add user**. Buat akun pertamamu (email + password) — ini akan jadi admin.
 4. Balik ke **SQL Editor**, jalankan (ganti email-nya):
    ```sql
@@ -137,17 +138,28 @@ Di halaman `/admin`, sekarang ada 2 cara trigger generate soal manual:
 - **Generate Umum** — cek semua 27 kombinasi (3 exam × 3 section × 3 kesulitan), top-up otomatis yang stoknya di bawah ambang batas. Ini juga yang dijalankan `pg_cron` tiap jam.
 - **Generate Spesifik** — pilih 1 kombinasi tertentu + jumlah soal, langsung generate tanpa peduli ambang batas. Cocok kalau kamu mau prioritaskan (misal "saya butuh 10 soal TOEFL Speaking Advanced sekarang juga buat sesi user besok pagi").
 
+## Tombol Batalkan (Cancel)
+
+Ketiga aksi generate manual (Generate Umum, Generate Spesifik, Generate Voices) punya tombol **Batalkan** yang muncul selama proses berjalan. Cara kerjanya:
+
+- Soal/audio yang **sedang diproses saat itu juga** (satu panggilan AI yang sedang berjalan) selalu dibiarkan selesai dulu dan tersimpan normal — tidak pernah ada data setengah jadi/rusak yang ke-save.
+- Begitu kamu klik Batalkan, **tidak ada item baru** yang mulai diproses setelah itu.
+- Jadi kalau kamu generate 20 soal lalu batalkan di soal ke-8, hasilnya: 8 soal (yang sudah selesai) tersimpan rapi, 12 sisanya tidak diproses sama sekali — bukan soal ke-9 yang "terpotong".
+
+Mekanismenya pakai tabel `generation_jobs` di database sebagai penanda status (`running`/`cancelled`/`completed`), dicek oleh server di antara tiap item sebelum lanjut ke item berikutnya.
+
 ## Kontrol biaya bank soal
 
 Diatur di `lib/questionGeneration.ts`:
 
 ```ts
 export const MIN_POOL_SIZE = 12;  // top-up otomatis kalau stok di bawah ini
-export const MAX_POOL_SIZE = 40;  // stok tidak akan pernah melebihi ini
 export const TOP_UP_BATCH = 4;    // maksimal nambah berapa soal per run top-up
 ```
 
-Total kombinasi = 3 exam × 3 section × 3 kesulitan = 27. Dengan `MAX_POOL_SIZE = 40`, total soal di database maksimal ~1080 — dan itu pun cuma tercapai kalau memang banyak dipakai. Biaya Groq jadi berbanding lurus dengan **pemakaian riil**, bukan jumlah klik user (karena user cuma "ambil dari bank", tidak trigger AI tiap kali).
+**Tidak ada batas maksimal stok per kombinasi** (sesuai permintaanmu) — pool cuma akan bertambah kalau stoknya memang habis dipakai sampai di bawah `MIN_POOL_SIZE`. Selama soal tidak habis-habis dipakai, cron/generate umum tidak akan nambah apa-apa untuk kombinasi itu. Jadi biaya Groq tetap berbanding lurus dengan **pemakaian riil**, bukan jumlah klik/waktu berjalan — cuma sekarang tanpa plafon atas kalau memang volume pemakaian besar dan butuh stok banyak.
+
+Kalau suatu saat mau tetap ada batas atas (misalnya biar tidak kebablasan kalau ada bug generate berulang), tinggal tambahkan lagi pengecekan `MAX_POOL_SIZE` di 2 fungsi (`topUpAllPools` dan `topUpOne`) di file yang sama.
 
 ---
 
@@ -167,6 +179,7 @@ Groq cukup sering mempensiunkan model lama — kalau muncul error `model_not_fou
 supabase/
   schema.sql                    → skema database lengkap (jalankan sekali di awal)
   storage.sql                   → setup bucket audio TTS (jalankan sekali di awal)
+  jobs.sql                      → tabel kontrol batalkan generate (jalankan sekali di awal)
   cron.sql                      → setup pg_cron auto top-up (jalankan setelah deploy)
 middleware.ts                   → proteksi route: wajib login, cek akun aktif, cek admin
 app/
@@ -190,6 +203,7 @@ lib/
   serverAuth.ts                  → helper requireAdmin() / requireUser() untuk API routes
   questionGeneration.ts          → logika generate + top-up (umum & spesifik), dipakai admin & cron
   audioGeneration.ts             → generate + cache audio TTS listening ke Supabase Storage
+  generationJobs.ts              → kontrol job cancellable (dipakai tombol Batalkan)
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
   history.ts                     → baca/tulis riwayat sesi (sekarang dari Supabase)
   gamification.ts                → hitung streak, XP/level, badge
