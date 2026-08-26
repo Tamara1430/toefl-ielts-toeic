@@ -16,11 +16,11 @@ export async function POST(req: NextRequest) {
   const jobId: string | undefined = body?.jobId;
 
   try {
-    const results = await topUpAllPools(jobId);
+    const { results, rateLimited } = await topUpAllPools(jobId);
     const totalGenerated = results.reduce((sum, r) => sum + r.generated, 0);
     const cancelled = await isJobCancelled(jobId);
     await finishJob(jobId, cancelled ? "cancelled" : "completed");
-    return NextResponse.json({ totalGenerated, results, cancelled });
+    return NextResponse.json({ totalGenerated, results, cancelled, rateLimited });
   } catch (err: any) {
     await finishJob(jobId, "cancelled");
     console.error("admin generate error:", err);

@@ -14,7 +14,7 @@ import { recordSession } from "@/lib/history";
 import McqQuestions, { McqQuestion } from "@/components/McqQuestions";
 import DialoguePlayer from "@/components/DialoguePlayer";
 import SpeakingSession, { SpeakingTask } from "@/components/SpeakingSession";
-import { ArrowLeft, Loader2, Sparkles, BarChart3, PackageX } from "lucide-react";
+import { ArrowLeft, Loader2, Sparkles, BarChart3, PackageX, Headphones } from "lucide-react";
 
 interface ReadingData {
   title: string;
@@ -39,6 +39,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
   const [data, setData] = useState<GeneratedData | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
   const [outOfStock, setOutOfStock] = useState(false);
+  const [audioPending, setAudioPending] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +48,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
     setError(null);
     setData(null);
     setOutOfStock(false);
+    setAudioPending(false);
     try {
       const res = await fetch("/api/practice/question", {
         method: "POST",
@@ -56,6 +58,10 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal mengambil soal.");
 
+      if (json.audioPending) {
+        setAudioPending(true);
+        return;
+      }
       if (json.outOfStock) {
         setOutOfStock(true);
         return;
@@ -74,6 +80,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
     setData(null);
     setQuestionId(null);
     setOutOfStock(false);
+    setAudioPending(false);
     setError(null);
   }
 
@@ -145,6 +152,20 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           </p>
         )}
 
+        {audioPending && (
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center">
+            <Headphones className="mx-auto text-blue-500 mb-3" size={32} />
+            <h3 className="font-semibold text-neutral-900 mb-1">
+              Soal ada, tapi audionya belum siap 🎧
+            </h3>
+            <p className="text-sm text-neutral-600 mb-1">
+              Ada soal listening {DIFFICULTY_LABELS[difficulty].toLowerCase()} untuk{" "}
+              {EXAM_LABELS[exam]} yang belum kamu kerjakan, tapi suaranya masih diproses admin.
+            </p>
+            <p className="text-sm text-neutral-500">Tunggu sebentar lalu coba lagi, ya.</p>
+          </div>
+        )}
+
         {outOfStock && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
             <PackageX className="mx-auto text-amber-500 mb-3" size={32} />
@@ -162,7 +183,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           </div>
         )}
 
-        {!data && !loading && !outOfStock && (
+        {!data && !loading && !outOfStock && !audioPending && (
           <p className="text-neutral-400 text-sm">
             Klik &ldquo;Ambil Soal&rdquo; untuk mulai latihan {SECTION_LABELS[section].toLowerCase()}.
           </p>

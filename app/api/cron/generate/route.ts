@@ -11,9 +11,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const results = await topUpAllPools();
+    const { results, rateLimited } = await topUpAllPools();
     const totalGenerated = results.reduce((sum, r) => sum + r.generated, 0);
-    return NextResponse.json({ totalGenerated, results });
+    return NextResponse.json({ totalGenerated, results, rateLimited });
   } catch (err: any) {
     console.error("cron generate error:", err);
     return NextResponse.json({ error: err?.message ?? "Gagal top-up." }, { status: 500 });

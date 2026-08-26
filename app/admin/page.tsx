@@ -179,7 +179,13 @@ export default function AdminStockPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal generate.");
       setLastResultAll(
-        `${json.totalGenerated} soal baru ditambahkan.${json.cancelled ? " (dibatalkan — sisanya belum diproses)" : ""}`
+        `${json.totalGenerated} soal baru ditambahkan.${
+          json.cancelled ? " (dibatalkan — sisanya belum diproses)" : ""
+        }${
+          json.rateLimited
+            ? " ⚠️ Berhenti karena kelihatannya kena rate limit/kuota harian Groq — coba lagi nanti atau besok."
+            : ""
+        }`
       );
       await loadStock();
     } catch (e: any) {
@@ -215,7 +221,11 @@ export default function AdminStockPage() {
       setLastResultSpecific(
         `${r.generated} soal baru untuk ${EXAM_LABELS[specExam]} / ${SECTION_LABELS[specSection]} / ${DIFFICULTY_LABELS[specDifficulty]}${
           json.cancelled ? " (dibatalkan)" : ""
-        }${r.errors.length ? ` — ${r.errors.length} gagal` : ""}.`
+        }${r.errors.length ? ` — ${r.errors.length} gagal` : ""}.${
+          json.rateLimited
+            ? " ⚠️ Berhenti karena kelihatannya kena rate limit/kuota harian Groq."
+            : ""
+        }`
       );
       await loadStock();
     } catch (e: any) {

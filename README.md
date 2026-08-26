@@ -164,11 +164,13 @@ Cara kerja: server update kolom `current_step` di tabel `generation_jobs` sesaat
 Diatur di `lib/questionGeneration.ts`:
 
 ```ts
-export const MIN_POOL_SIZE = 12;  // top-up otomatis kalau stok di bawah ini
-export const TOP_UP_BATCH = 4;    // maksimal nambah berapa soal per run top-up
+export const MIN_POOL_SIZE = 60;  // top-up otomatis sampai target ini tercapai per kombinasi
+export const TOP_UP_BATCH = 20;   // maksimal nambah berapa soal per run top-up
 ```
 
-**Tidak ada batas maksimal stok per kombinasi** (sesuai permintaanmu) — pool cuma akan bertambah kalau stoknya memang habis dipakai sampai di bawah `MIN_POOL_SIZE`. Selama soal tidak habis-habis dipakai, cron/generate umum tidak akan nambah apa-apa untuk kombinasi itu. Jadi biaya Groq tetap berbanding lurus dengan **pemakaian riil**, bukan jumlah klik/waktu berjalan — cuma sekarang tanpa plafon atas kalau memang volume pemakaian besar dan butuh stok banyak.
+**Tidak ada batas maksimal stok per kombinasi** — pool cuma akan bertambah kalau stoknya di bawah `MIN_POOL_SIZE`. Target dinaikkan ke 60 (dari 12 sebelumnya) supaya kamu punya buffer lebih tebal, mengingat Groq free tier punya limit harian — dengan stok lebih besar, kamu tidak gampang kehabisan soal di antara waktu reset kuota harian.
+
+**Deteksi rate limit otomatis**: kalau Groq mengembalikan error rate limit/kuota (kode 429 atau pesan sejenis) di tengah proses generate, sistem langsung berhenti dengan rapi (bukan lanjut coba 26 kombinasi lain yang pasti gagal juga) dan kasih tahu di hasilnya: *"⚠️ Berhenti karena kelihatannya kena rate limit/kuota harian Groq"*. Tinggal coba lagi nanti/besok setelah kuota reset.
 
 Kalau suatu saat mau tetap ada batas atas (misalnya biar tidak kebablasan kalau ada bug generate berulang), tinggal tambahkan lagi pengecekan `MAX_POOL_SIZE` di 2 fungsi (`topUpAllPools` dan `topUpOne`) di file yang sama.
 
@@ -223,6 +225,18 @@ lib/
 ```
 
 ---
+
+## Prioritas Soal Listening (audio siap dulu)
+
+Saat user ambil soal listening, sistem sekarang **memprioritaskan soal yang audionya sudah lengkap ter-cache DAN belum pernah dikerjakan user itu**. Soal yang audionya masih bolong (belum sempat digenerate/backfill) tidak pernah disodorkan ke user — daripada dengar suara yang error/kepotong.
+
+Kalau ternyata SEMUA soal yang tersisa untuk user itu audionya belum siap, muncul alert khusus: *"Soal ada, tapi audionya belum siap 🎧 — tunggu sebentar lalu coba lagi"*. Ini beda dari alert "stok soal habis" biasa — di sini soalnya sebenarnya ada, cuma admin perlu generate audionya dulu (pakai tombol Generate Voices atau Generate per-soal di `/admin`).
+
+## Progres User (buat planning)
+
+Di `/admin/users`, sekarang ada:
+- **Ringkasan total** — jumlah soal yang sudah dikerjakan semua user gabungan, di bagian atas halaman.
+- **Per-user** — total soal dikerjakan + breakdown Reading/Listening/Speaking + tanggal terakhir aktif, ditampilkan di bawah tiap baris user.
 
 ## Pengembangan Lanjutan (belum termasuk di v1 ini)
 

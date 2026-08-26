@@ -50,7 +50,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ outOfStock: true });
   }
 
-  const picked = candidates[Math.floor(Math.random() * candidates.length)];
+  let pickPool = candidates;
+
+  if (section === "listening") {
+    // Only serve questions whose audio is fully cached — never a question
+    // whose audio is still mid-generation/incomplete, even if it means
+    // showing an alert instead.
+    const audioReady = candidates.filter((q) => {
+      const turns = (q.payload as any)?.turns;
+      return Array.isArray(turns) && turns.length > 0 && turns.every((t: any) => t.audioUrl);
+    });
+
+    if (audioReady.length === 0) {
+      // There ARE unseen questions here, they just don't have audio ready yet —
+      // distinct from true "no questions left at all" (outOfStock below).
+      return NextResponse.json({ audioPending: true });
+    }
+
+    pickPool = audioReady;
+  }
+
+  const picked = pickPool[Math.floor(Math.random() * pickPool.length)];
   const payload = picked.payload as any;
 
   // Shuffle MCQ options for reading/listening so repeats (across users) feel fresh.

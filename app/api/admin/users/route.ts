@@ -11,13 +11,56 @@ export async function GET() {
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin
+  const { data: profiles, error } = await admin
     .from("profiles")
     .select("id, email, role, is_active, paid_until, created_at")
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ users: data });
+
+  // Aggregate progress per user — small scale (5-10 users) so fetching all
+  // session rows and reducing in JS is simpler and cheap enough vs a
+  // separate grouped query per user.
+  const { data: sessions } = await admin
+    .from("practice_sessions")
+    .select("user_id, section, created_at");
+
+  const statsByUser = new Map<
+    string,
+    { total: number; reading: number; listening: number; speaking: number; lastActivity: string | null }
+  >();
+
+  for (const s of sessions ?? []) {
+    const uid = s.user_id as string;
+    const entry = statsByUser.get(uid) ?? {
+      total: 0,
+      reading: 0,
+      listening: 0,
+      speaking: 0,
+      lastActivity: null,
+    };
+    entry.total++;
+    if (s.section === "reading") entry.reading++;
+    if (s.section === "listening") entry.listening++;
+    if (s.section === "speaking") entry.speaking++;
+    if (!entry.lastActivity || s.created_at > entry.lastActivity) {
+      entry.lastActivity = s.created_at as string;
+    }
+    statsByUser.set(uid, entry);
+  }
+
+  const users = (profiles ?? []).map((p) => ({
+    ...p,
+    progress: statsByUser.get(p.id) ?? {
+      total: 0,
+      reading: 0,
+      listening: 0,
+      speaking: 0,
+      lastActivity: null,
+    },
+  }));
+
+  return NextResponse.json({ users });
 }
 
 export async function POST(req: NextRequest) {

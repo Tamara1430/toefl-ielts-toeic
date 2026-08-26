@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, UserPlus, Trash2, ShieldCheck } from "lucide-react";
+import { Loader2, UserPlus, Trash2, ShieldCheck, BookOpenText, Headphones, Mic } from "lucide-react";
+
+interface UserProgress {
+  total: number;
+  reading: number;
+  listening: number;
+  speaking: number;
+  lastActivity: string | null;
+}
 
 interface UserRow {
   id: string;
@@ -10,6 +18,7 @@ interface UserRow {
   is_active: boolean;
   paid_until: string | null;
   created_at: string;
+  progress: UserProgress;
 }
 
 export default function AdminUsersPage() {
@@ -166,58 +175,90 @@ export default function AdminUsersPage() {
         </p>
       )}
 
+      {!loading && users.length > 0 && (
+        <div className="rounded-xl border border-neutral-200 bg-white p-4 mb-5">
+          <p className="text-xs text-neutral-500 mb-1">Total soal dikerjakan (semua user)</p>
+          <p className="text-2xl font-bold text-neutral-900">
+            {users.reduce((sum, u) => sum + u.progress.total, 0)}
+          </p>
+        </div>
+      )}
+
       <div className="rounded-xl border border-neutral-200 bg-white divide-y divide-neutral-100">
         {loading && <p className="p-4 text-sm text-neutral-400">Memuat...</p>}
         {!loading && users.length === 0 && (
           <p className="p-4 text-sm text-neutral-400">Belum ada user.</p>
         )}
         {users.map((u) => (
-          <div key={u.id} className="p-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="font-medium text-sm flex items-center gap-1.5">
-                {u.email}
-                {u.role === "admin" && (
-                  <span className="inline-flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5">
-                    <ShieldCheck size={11} /> admin
-                  </span>
-                )}
-              </p>
-              <p className="text-xs text-neutral-400">
-                Terdaftar {new Date(u.created_at).toLocaleDateString("id-ID")}
-              </p>
-            </div>
+          <div key={u.id} className="p-4 flex flex-col gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-sm flex items-center gap-1.5">
+                  {u.email}
+                  {u.role === "admin" && (
+                    <span className="inline-flex items-center gap-0.5 text-xs text-indigo-600 bg-indigo-50 rounded-full px-2 py-0.5">
+                      <ShieldCheck size={11} /> admin
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-neutral-400">
+                  Terdaftar {new Date(u.created_at).toLocaleDateString("id-ID")}
+                  {u.progress.lastActivity &&
+                    ` • Terakhir aktif ${new Date(u.progress.lastActivity).toLocaleDateString("id-ID")}`}
+                </p>
+              </div>
 
-            <div className="flex items-center gap-3 flex-wrap">
-              <input
-                type="date"
-                defaultValue={u.paid_until ?? ""}
-                onBlur={(e) => updatePaidUntil(u, e.target.value)}
-                className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
-                title="Bayar sampai"
-              />
+              <div className="flex items-center gap-3 flex-wrap">
+                <input
+                  type="date"
+                  defaultValue={u.paid_until ?? ""}
+                  onBlur={(e) => updatePaidUntil(u, e.target.value)}
+                  className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs"
+                  title="Bayar sampai"
+                />
 
-              <button
-                onClick={() => toggleActive(u)}
-                disabled={u.role === "admin"}
-                className={`text-xs font-medium px-3 py-1.5 rounded-full transition disabled:opacity-40 ${
-                  u.is_active
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-neutral-100 text-neutral-500 border border-neutral-200"
-                }`}
-              >
-                {u.is_active ? "Aktif" : "Nonaktif"}
-              </button>
-
-              {u.role !== "admin" && (
                 <button
-                  onClick={() => handleDelete(u)}
-                  className="text-neutral-300 hover:text-red-600 transition"
-                  title="Hapus user"
+                  onClick={() => toggleActive(u)}
+                  disabled={u.role === "admin"}
+                  className={`text-xs font-medium px-3 py-1.5 rounded-full transition disabled:opacity-40 ${
+                    u.is_active
+                      ? "bg-green-50 text-green-700 border border-green-200"
+                      : "bg-neutral-100 text-neutral-500 border border-neutral-200"
+                  }`}
                 >
-                  <Trash2 size={16} />
+                  {u.is_active ? "Aktif" : "Nonaktif"}
                 </button>
-              )}
+
+                {u.role !== "admin" && (
+                  <button
+                    onClick={() => handleDelete(u)}
+                    className="text-neutral-300 hover:text-red-600 transition"
+                    title="Hapus user"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </div>
             </div>
+
+            {u.progress.total > 0 ? (
+              <div className="flex items-center gap-4 text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 w-fit">
+                <span className="font-medium text-neutral-700">
+                  {u.progress.total} soal dikerjakan
+                </span>
+                <span className="flex items-center gap-1">
+                  <BookOpenText size={12} /> {u.progress.reading}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Headphones size={12} /> {u.progress.listening}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Mic size={12} /> {u.progress.speaking}
+                </span>
+              </div>
+            ) : (
+              <p className="text-xs text-neutral-400">Belum ada aktivitas latihan.</p>
+            )}
           </div>
         ))}
       </div>

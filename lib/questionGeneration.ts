@@ -143,10 +143,12 @@ export const ALL_EXAMS: ExamType[] = ["toefl", "ielts", "toeic"];
 export const ALL_SECTIONS: SectionType[] = ["reading", "listening", "speaking"];
 export const ALL_DIFFICULTIES: Difficulty[] = ["beginner", "intermediate", "advanced"];
 
-/** Minimum pool size per (exam, section, difficulty) combo before auto top-up kicks in. */
-export const MIN_POOL_SIZE = 12;
-/** How many questions to add per top-up run, per combo (kept small to spread cost/time). */
-export const TOP_UP_BATCH = 4;
+/** Target pool size per (exam, section, difficulty) combo — top-up keeps going
+ * until each combo reaches this, giving a much bigger buffer against Groq's
+ * daily free-tier rate limit instead of stopping at a tiny stock. */
+export const MIN_POOL_SIZE = 60;
+/** How many questions to add per top-up run, per combo. */
+export const TOP_UP_BATCH = 20;
 
 export interface TopUpResult {
   exam: ExamType;
@@ -162,16 +164,35 @@ export interface TopUpResult {
 // click or cron tick continue where it left off.
 const TIME_BUDGET_MS = 250_000;
 
+/** Detects a Groq rate-limit / daily-quota error so we can stop the whole run
+ * cleanly instead of burning through every remaining combo with doomed calls. */
+function isRateLimitError(e: any): boolean {
+  const status = e?.status ?? e?.response?.status ?? e?.statusCode;
+  const message = String(e?.message ?? e ?? "").toLowerCase();
+  return (
+    status === 429 ||
+    message.includes("rate limit") ||
+    message.includes("rate_limit") ||
+    message.includes("quota") ||
+    message.includes("too many requests")
+  );
+}
+
 /**
- * Check every (exam, section, difficulty) combo's stock; generate a small batch
+ * Check every (exam, section, difficulty) combo's stock; generate a batch
  * for any combo below MIN_POOL_SIZE. No upper cap — pools only grow when
  * actually depleted below the threshold, so cost stays tied to real usage.
  * Used by both the manual "Generate Umum" admin action and the hourly cron.
+ * Stops the whole run early (not just the current combo) if Groq's rate
+ * limit/daily quota is detected, since every further call would fail too.
  */
-export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
+export async function topUpAllPools(
+  jobId?: string
+): Promise<{ results: TopUpResult[]; rateLimited: boolean }> {
   const admin = createAdminClient();
   const results: TopUpResult[] = [];
   const startedAt = Date.now();
+  let rateLimited = false;
 
   outer: for (const exam of ALL_EXAMS) {
     for (const section of ALL_SECTIONS) {
@@ -208,6 +229,11 @@ export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
               result.generated++;
             } catch (e: any) {
               result.errors.push(e.message ?? String(e));
+              if (isRateLimitError(e)) {
+                rateLimited = true;
+                results.push(result);
+                break outer;
+              }
             }
           }
         }
@@ -218,7 +244,7 @@ export async function topUpAllPools(jobId?: string): Promise<TopUpResult[]> {
   }
 
   await setJobProgress(jobId, null);
-  return results;
+  return { results, rateLimited };
 }
 
 /**
@@ -233,9 +259,10 @@ export async function topUpOne(
   difficulty: Difficulty,
   count: number,
   jobId?: string
-): Promise<TopUpResult> {
+): Promise<{ result: TopUpResult; rateLimited: boolean }> {
   const admin = createAdminClient();
   const startedAt = Date.now();
+  let rateLimited = false;
 
   const { count: existing } = await admin
     .from("questions")
@@ -256,9 +283,13 @@ export async function topUpOne(
       result.generated++;
     } catch (e: any) {
       result.errors.push(e.message ?? String(e));
+      if (isRateLimitError(e)) {
+        rateLimited = true;
+        break;
+      }
     }
   }
 
   await setJobProgress(jobId, null);
-  return result;
+  return { result, rateLimited };
 }

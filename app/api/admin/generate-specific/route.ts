@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const result = await topUpOne(exam, section, difficulty, Math.min(count, 20), jobId);
+    const { result, rateLimited } = await topUpOne(exam, section, difficulty, Math.min(count, 50), jobId);
     const cancelled = await isJobCancelled(jobId);
     await finishJob(jobId, cancelled ? "cancelled" : "completed");
-    return NextResponse.json({ result, cancelled });
+    return NextResponse.json({ result, cancelled, rateLimited });
   } catch (err: any) {
     await finishJob(jobId, "cancelled");
     console.error("generate-specific error:", err);
