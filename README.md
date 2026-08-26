@@ -159,18 +159,23 @@ Selama Generate Umum/Spesifik/Voices berjalan, admin panel menampilkan:
 
 Cara kerja: server update kolom `current_step` di tabel `generation_jobs` sesaat sebelum mulai memproses tiap item, client polling status itu tiap 1.5 detik selama proses berjalan.
 
-## Kontrol biaya bank soal
+## Kontrol biaya bank soal & realita limit harian Groq
 
 Diatur di `lib/questionGeneration.ts`:
 
 ```ts
-export const MIN_POOL_SIZE = 60;  // top-up otomatis sampai target ini tercapai per kombinasi
-export const TOP_UP_BATCH = 20;   // maksimal nambah berapa soal per run top-up
+export const MIN_POOL_SIZE = 60;  // target stok per kombinasi (butuh waktu berminggu-minggu untuk penuh dari nol, itu wajar)
+export const TOP_UP_BATCH = 5;    // maksimal nambah berapa soal per run top-up, per kombinasi
 ```
 
-**Tidak ada batas maksimal stok per kombinasi** — pool cuma akan bertambah kalau stoknya di bawah `MIN_POOL_SIZE`. Target dinaikkan ke 60 (dari 12 sebelumnya) supaya kamu punya buffer lebih tebal, mengingat Groq free tier punya limit harian — dengan stok lebih besar, kamu tidak gampang kehabisan soal di antara waktu reset kuota harian.
+**Limit resmi Groq free tier untuk `openai/gpt-oss-120b`** (dicek Agustus 2026): 30 request/menit, 1.000 request/hari, 8.000 token/menit, **200.000 token/hari**. Yang paling ketat itu **token per hari**, bukan jumlah request — karena tiap generate soal makan ~1.000-2.000 token, realistisnya cuma sekitar **~100-130 kali generate soal per hari total**, gabungan dari SEMUA 27 kombinasi (3 exam × 3 section × 3 kesulitan).
 
-**Deteksi rate limit otomatis**: kalau Groq mengembalikan error rate limit/kuota (kode 429 atau pesan sejenis) di tengah proses generate, sistem langsung berhenti dengan rapi (bukan lanjut coba 26 kombinasi lain yang pasti gagal juga) dan kasih tahu di hasilnya: *"⚠️ Berhenti karena kelihatannya kena rate limit/kuota harian Groq"*. Tinggal coba lagi nanti/besok setelah kuota reset.
+Konsekuensinya:
+- **Membangun stok dari nol sampai 60/kombinasi butuh waktu ~2-3 minggu**, bukan sekali jalan — ini wajar untuk free tier, bukan bug.
+- Kalau kena limit harian di tengah proses, sistem berhenti rapi (fitur rate-limit detection) dan kasih tahu di hasilnya — tinggal nunggu reset besok, cron otomatis lanjut lagi.
+- **Urutan kombinasi diacak tiap kali run** — supaya kalau limit harian kena di tengah jalan, bukan selalu kombinasi yang sama (misal TOEFL selalu menang, TOEIC selalu buntung) yang dapat jatah tiap hari.
+
+Kalau kamu upgrade ke Groq berbayar nanti, limit-nya naik signifikan — tinggal naikkan lagi `TOP_UP_BATCH` di file yang sama.
 
 Kalau suatu saat mau tetap ada batas atas (misalnya biar tidak kebablasan kalau ada bug generate berulang), tinggal tambahkan lagi pengecekan `MAX_POOL_SIZE` di 2 fungsi (`topUpAllPools` dan `topUpOne`) di file yang sama.
 

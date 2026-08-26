@@ -145,10 +145,27 @@ export const ALL_DIFFICULTIES: Difficulty[] = ["beginner", "intermediate", "adva
 
 /** Target pool size per (exam, section, difficulty) combo — top-up keeps going
  * until each combo reaches this, giving a much bigger buffer against Groq's
- * daily free-tier rate limit instead of stopping at a tiny stock. */
+ * daily free-tier rate limit instead of stopping at a tiny stock. Reaching
+ * this from empty takes many days/weeks on the free tier (see TOP_UP_BATCH
+ * comment below) — that's expected, not a bug. */
 export const MIN_POOL_SIZE = 60;
-/** How many questions to add per top-up run, per combo. */
-export const TOP_UP_BATCH = 20;
+/**
+ * How many questions to add per top-up run, per combo.
+ *
+ * Grounded in Groq's actual free-tier limits for openai/gpt-oss-120b (checked
+ * Aug 2026): 200,000 tokens/day is the binding constraint (not the 1,000
+ * requests/day figure) — each generation call uses roughly 1,000-2,000
+ * tokens, so the realistic daily budget is only ~100-130 successful
+ * generations TOTAL, across all 27 (exam × section × difficulty) combos.
+ *
+ * With 27 combos and a ~120/day budget, keeping this small (5) means one
+ * full pass through every combo costs ~135 generations — close to a full
+ * day's quota — so every combo gets a turn instead of the first few combos
+ * in iteration order hogging the whole daily budget while later ones starve
+ * for weeks. The hourly cron then spreads this pacing out naturally instead
+ * of front-loading everything into one run.
+ */
+export const TOP_UP_BATCH = 5;
 
 export interface TopUpResult {
   exam: ExamType;
@@ -194,53 +211,67 @@ export async function topUpAllPools(
   const startedAt = Date.now();
   let rateLimited = false;
 
-  outer: for (const exam of ALL_EXAMS) {
+  // Shuffle combo order each run — with Groq's daily quota often being the
+  // real constraint (not per-run time), a FIXED order would mean the same
+  // early combos (e.g. TOEFL/reading/beginner) always win the day's budget
+  // while later ones (e.g. TOEIC/speaking/advanced) starve for weeks. A
+  // shuffled order gives every combo a fair shot over multiple days.
+  const combos: { exam: ExamType; section: SectionType; difficulty: Difficulty }[] = [];
+  for (const exam of ALL_EXAMS) {
     for (const section of ALL_SECTIONS) {
       for (const difficulty of ALL_DIFFICULTIES) {
-        if (Date.now() - startedAt > TIME_BUDGET_MS) break outer;
-        if (await isJobCancelled(jobId)) break outer;
-
-        const { count } = await admin
-          .from("questions")
-          .select("id", { count: "exact", head: true })
-          .eq("exam", exam)
-          .eq("section", section)
-          .eq("difficulty", difficulty);
-
-        const before = count ?? 0;
-        const result: TopUpResult = { exam, section, difficulty, before, generated: 0, errors: [] };
-
-        if (before < MIN_POOL_SIZE) {
-          for (let i = 0; i < TOP_UP_BATCH; i++) {
-            if (Date.now() - startedAt > TIME_BUDGET_MS) break;
-            // Checked BEFORE starting the next item — whatever's already
-            // in-flight when cancel is clicked finishes normally and gets
-            // saved; nothing new starts after that.
-            if (await isJobCancelled(jobId)) break;
-            await setJobProgress(jobId, {
-              exam,
-              section,
-              difficulty,
-              index: i + 1,
-              total: TOP_UP_BATCH,
-            });
-            try {
-              await generateAndStoreQuestion(exam, section, difficulty);
-              result.generated++;
-            } catch (e: any) {
-              result.errors.push(e.message ?? String(e));
-              if (isRateLimitError(e)) {
-                rateLimited = true;
-                results.push(result);
-                break outer;
-              }
-            }
-          }
-        }
-
-        results.push(result);
+        combos.push({ exam, section, difficulty });
       }
     }
+  }
+  for (let i = combos.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [combos[i], combos[j]] = [combos[j], combos[i]];
+  }
+
+  outer: for (const { exam, section, difficulty } of combos) {
+    if (Date.now() - startedAt > TIME_BUDGET_MS) break outer;
+    if (await isJobCancelled(jobId)) break outer;
+
+    const { count } = await admin
+      .from("questions")
+      .select("id", { count: "exact", head: true })
+      .eq("exam", exam)
+      .eq("section", section)
+      .eq("difficulty", difficulty);
+
+    const before = count ?? 0;
+    const result: TopUpResult = { exam, section, difficulty, before, generated: 0, errors: [] };
+
+    if (before < MIN_POOL_SIZE) {
+      for (let i = 0; i < TOP_UP_BATCH; i++) {
+        if (Date.now() - startedAt > TIME_BUDGET_MS) break;
+        // Checked BEFORE starting the next item — whatever's already
+        // in-flight when cancel is clicked finishes normally and gets
+        // saved; nothing new starts after that.
+        if (await isJobCancelled(jobId)) break;
+        await setJobProgress(jobId, {
+          exam,
+          section,
+          difficulty,
+          index: i + 1,
+          total: TOP_UP_BATCH,
+        });
+        try {
+          await generateAndStoreQuestion(exam, section, difficulty);
+          result.generated++;
+        } catch (e: any) {
+          result.errors.push(e.message ?? String(e));
+          if (isRateLimitError(e)) {
+            rateLimited = true;
+            results.push(result);
+            break outer;
+          }
+        }
+      }
+    }
+
+    results.push(result);
   }
 
   await setJobProgress(jobId, null);
