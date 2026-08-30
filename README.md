@@ -200,7 +200,7 @@ supabase/
   jobs.sql                      → tabel kontrol batalkan generate (jalankan sekali di awal)
   jobs-update.sql               → tambahan kolom live progress (hanya kalau sudah pernah run jobs.sql versi lama)
   cron.sql                      → setup pg_cron auto top-up (jalankan setelah deploy)
-middleware.ts                   → proteksi route: wajib login, cek akun aktif, cek admin
+proxy.ts                        → proteksi route: wajib login, cek akun aktif, cek admin
 app/
   page.tsx                      → Dashboard: level/XP, streak, stats, badge
   login/page.tsx                → halaman login
@@ -222,6 +222,7 @@ lib/
   serverAuth.ts                  → helper requireAdmin() / requireUser() untuk API routes
   questionGeneration.ts          → logika generate + top-up (umum & spesifik), dipakai admin & cron
   audioGeneration.ts             → generate + cache audio TTS listening ke Supabase Storage
+  ttsProvider.ts                 → fallback Groq Orpheus → Edge TTS kalau Groq gagal
   generationJobs.ts              → kontrol job cancellable (dipakai tombol Batalkan)
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
   history.ts                     → baca/tulis riwayat sesi (sekarang dari Supabase)
@@ -230,6 +231,15 @@ lib/
 ```
 
 ---
+
+## TTS Fallback: Groq Orpheus → Edge TTS (gratis tanpa limit)
+
+Groq Orpheus TTS (suara AI, ekspresif) tetap jadi **prioritas utama**. Tapi karena free tier Orpheus cuma 100 request/hari (gampang habis untuk banyak soal listening × banyak giliran bicara), sekarang ada **fallback otomatis**: kalau Groq TTS gagal karena alasan apa pun (rate limit, kuota habis, dll), sistem langsung coba **Edge TTS** — layanan text-to-speech gratis tanpa API key/kartu kredit/rate limit resmi, memakai suara Microsoft Neural (kualitas natural, setara Azure TTS berbayar).
+
+Beberapa hal penting soal ini:
+- Berlaku di **semua jalur TTS**: generate soal baru, backfill "Generate Voices", generate per-soal, dan fallback live untuk soal lama yang belum ter-cache.
+- Tiap giliran bicara yang berhasil dibuat lewat Edge TTS ditandai di data soal (`ttsProvider: "edge"`), dan admin panel menampilkan label kecil **"(sebagian via Edge TTS)"** di daftar soal kalau ada giliran yang pakai fallback ini — supaya kamu tahu kualitas suaranya mungkin bukan Orpheus penuh.
+- **Catatan jujur**: Edge TTS ini bukan API resmi yang didokumentasikan Microsoft untuk pihak ketiga — ini wrapper open-source dari fitur "Read Aloud" Edge browser, dipakai luas di komunitas tapi tidak ada jaminan resmi stabil selamanya. Karena cuma dipakai sebagai *fallback* (bukan utama), risiko ini kecil dampaknya — kalau Edge TTS suatu saat berhenti berfungsi, soal-soal yang sudah pakai Orpheus tetap aman, dan generate baru tinggal balik mengandalkan Groq saja sampai ada solusi lain.
 
 ## Prioritas Soal Listening (audio siap dulu)
 

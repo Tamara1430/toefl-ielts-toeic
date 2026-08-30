@@ -84,6 +84,7 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
         const totalTurns = Array.isArray(turns) ? turns.length : null;
         const audioComplete = withAudio !== null && withAudio === totalTurns;
         const errors = rowErrors[q.id] ?? [];
+        const usedEdge = Array.isArray(turns) && turns.some((t: any) => t.ttsProvider === "edge");
 
         return (
           <div
@@ -99,6 +100,9 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
                   <span className="inline-flex items-center gap-1 text-xs text-indigo-600 font-normal shrink-0">
                     <Sparkles size={11} className="animate-pulse" /> sedang diproses
                   </span>
+                )}
+                {usedEdge && (
+                  <span className="text-xs text-neutral-400 shrink-0">(sebagian via Edge TTS)</span>
                 )}
               </p>
               <p className="text-xs text-neutral-400">

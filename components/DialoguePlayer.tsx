@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Volume2, Loader2, Square, Mic2 } from "lucide-react";
-import { ORPHEUS_VOICE_POOL } from "@/lib/examConfig";
+import { ORPHEUS_VOICE_POOL, EDGE_TTS_VOICE_POOL } from "@/lib/examConfig";
 
 export interface DialogueTurn {
   speaker: string;
@@ -26,12 +26,13 @@ const SPEAKER_BADGE_COLORS = [
 ];
 
 function buildSpeakerMap(turns: DialogueTurn[]) {
-  const map = new Map<string, { voice: string; colorClass: string }>();
+  const map = new Map<string, { voice: string; edgeVoice: string; colorClass: string }>();
   let i = 0;
   for (const t of turns) {
     if (!map.has(t.speaker)) {
       map.set(t.speaker, {
         voice: ORPHEUS_VOICE_POOL[i % ORPHEUS_VOICE_POOL.length],
+        edgeVoice: EDGE_TTS_VOICE_POOL[i % EDGE_TTS_VOICE_POOL.length],
         colorClass: SPEAKER_BADGE_COLORS[i % SPEAKER_BADGE_COLORS.length],
       });
       i++;
@@ -76,11 +77,11 @@ export default function DialoguePlayer({ turns }: Props) {
     if (turn.audioUrl) return turn.audioUrl;
 
     // Fallback for older questions generated before audio caching existed.
-    const voice = speakerMap.get(turn.speaker)?.voice;
+    const meta = speakerMap.get(turn.speaker);
     const res = await fetch("/api/tts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: turn.text, voice }),
+      body: JSON.stringify({ text: turn.text, voice: meta?.voice, edgeVoice: meta?.edgeVoice }),
     });
     if (!res.ok) {
       const json = await res.json().catch(() => ({}));

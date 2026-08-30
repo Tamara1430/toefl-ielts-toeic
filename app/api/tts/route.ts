@@ -1,32 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getGroqClient } from "@/lib/groqClient";
-import { GROQ_TTS_MODEL, GROQ_TTS_VOICE } from "@/lib/examConfig";
+import { synthesizeSpeech } from "@/lib/ttsProvider";
+import { GROQ_TTS_VOICE, EDGE_TTS_VOICE_POOL } from "@/lib/examConfig";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
-    const { text, voice } = await req.json();
+    const { text, voice, edgeVoice } = await req.json();
 
     if (!text || typeof text !== "string") {
       return NextResponse.json({ error: "Field 'text' wajib diisi." }, { status: 400 });
     }
 
-    const groq = getGroqClient();
+    const { buffer, contentType } = await synthesizeSpeech(
+      text,
+      voice || GROQ_TTS_VOICE,
+      edgeVoice || EDGE_TTS_VOICE_POOL[0]
+    );
 
-    const response = await groq.audio.speech.create({
-      model: GROQ_TTS_MODEL,
-      voice: voice || GROQ_TTS_VOICE,
-      input: text,
-      response_format: "wav",
-    });
-
-    const arrayBuffer = await response.arrayBuffer();
-
-    return new NextResponse(Buffer.from(arrayBuffer), {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
-        "Content-Type": "audio/wav",
+        "Content-Type": contentType,
         "Cache-Control": "no-store",
       },
     });

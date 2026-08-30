@@ -49,3 +49,17 @@ export const ORPHEUS_VOICE_POOL = [
   "hannah",
   "daniel",
 ] as const;
+
+// Fallback TTS voices (Microsoft Edge neural voices via edge-tts-universal),
+// used only when Groq TTS fails (rate limit/quota/etc). Same-length pool,
+// alternating gender, indexed the same way as ORPHEUS_VOICE_POOL so a given
+// speaker maps consistently to "voice #N" regardless of which provider ends
+// up generating that particular turn.
+export const EDGE_TTS_VOICE_POOL = [
+  "en-US-AriaNeural",
+  "en-US-GuyNeural",
+  "en-US-JennyNeural",
+  "en-US-DavisNeural",
+  "en-US-EmmaNeural",
+  "en-US-BrianNeural",
+] as const;

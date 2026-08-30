@@ -1,12 +1,13 @@
-import { getGroqClient } from "@/lib/groqClient";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GROQ_TTS_MODEL, ORPHEUS_VOICE_POOL } from "@/lib/examConfig";
+import { ORPHEUS_VOICE_POOL, EDGE_TTS_VOICE_POOL } from "@/lib/examConfig";
 import { isJobCancelled, setJobProgress } from "@/lib/generationJobs";
+import { synthesizeSpeech } from "@/lib/ttsProvider";
 
 export interface DialogueTurn {
   speaker: string;
   text: string;
   audioUrl?: string;
+  ttsProvider?: "groq" | "edge";
 }
 
 interface ListeningPayload {
@@ -17,14 +18,18 @@ interface ListeningPayload {
 
 const BUCKET = "tts-audio";
 
-/** Assign a consistent voice per unique speaker, round-robin, in order of first
- * appearance — same logic used as the old client-side fallback in DialoguePlayer. */
-function assignVoices(turns: DialogueTurn[]): Map<string, string> {
-  const map = new Map<string, string>();
+/** Assign a consistent voice pair (Groq + Edge fallback) per unique speaker,
+ * round-robin, in order of first appearance — so whichever provider ends up
+ * generating a given turn, the speaker's voice choice stays consistent. */
+function assignVoices(turns: DialogueTurn[]): Map<string, { groq: string; edge: string }> {
+  const map = new Map<string, { groq: string; edge: string }>();
   let i = 0;
   for (const t of turns) {
     if (!map.has(t.speaker)) {
-      map.set(t.speaker, ORPHEUS_VOICE_POOL[i % ORPHEUS_VOICE_POOL.length]);
+      map.set(t.speaker, {
+        groq: ORPHEUS_VOICE_POOL[i % ORPHEUS_VOICE_POOL.length],
+        edge: EDGE_TTS_VOICE_POOL[i % EDGE_TTS_VOICE_POOL.length],
+      });
       i++;
     }
   }
@@ -51,7 +56,6 @@ export async function generateAndCacheListeningAudio(
     return { updated: false, errors: [] }; // already fully cached
   }
 
-  const groq = getGroqClient();
   const admin = createAdminClient();
   const voiceMap = assignVoices(turns);
   const errors: string[] = [];
@@ -71,23 +75,25 @@ export async function generateAndCacheListeningAudio(
       totalTurns: turns.length,
     });
     try {
-      const voice = voiceMap.get(turns[i].speaker) ?? ORPHEUS_VOICE_POOL[0];
-      const response = await groq.audio.speech.create({
-        model: GROQ_TTS_MODEL,
-        voice,
-        input: turns[i].text,
-        response_format: "wav",
-      });
-      const buffer = Buffer.from(await response.arrayBuffer());
-      const path = `${questionId}/${i}.wav`;
+      const voices = voiceMap.get(turns[i].speaker) ?? {
+        groq: ORPHEUS_VOICE_POOL[0],
+        edge: EDGE_TTS_VOICE_POOL[0],
+      };
+      const { buffer, provider, contentType, ext } = await synthesizeSpeech(
+        turns[i].text,
+        voices.groq,
+        voices.edge
+      );
+      const path = `${questionId}/${i}.${ext}`;
 
       const { error: uploadError } = await admin.storage
         .from(BUCKET)
-        .upload(path, buffer, { contentType: "audio/wav", upsert: true });
+        .upload(path, buffer, { contentType, upsert: true });
       if (uploadError) throw new Error(uploadError.message);
 
       const { data: publicUrlData } = admin.storage.from(BUCKET).getPublicUrl(path);
       turns[i].audioUrl = publicUrlData.publicUrl;
+      turns[i].ttsProvider = provider;
     } catch (e: any) {
       errors.push(`Giliran ${i + 1} (${turns[i].speaker}): ${e.message ?? String(e)}`);
     }
