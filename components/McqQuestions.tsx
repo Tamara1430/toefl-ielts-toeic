@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 export interface McqQuestion {
@@ -19,6 +19,10 @@ export default function McqQuestions({
 }) {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [submitted, setSubmitted] = useState(false);
+  // Guards against double-submit from a fast double-tap (React state updates
+  // aren't synchronous, so `disabled={submitted}` alone can't catch a second
+  // tap that lands before the re-render — a ref is checked/set immediately).
+  const submittingRef = useRef(false);
 
   const score = questions.reduce(
     (acc, q, i) => acc + (answers[i] === q.correctIndex ? 1 : 0),
@@ -69,6 +73,8 @@ export default function McqQuestions({
       {!submitted ? (
         <button
           onClick={() => {
+            if (submittingRef.current) return;
+            submittingRef.current = true;
             setSubmitted(true);
             onComplete?.(score, questions.length);
           }}
