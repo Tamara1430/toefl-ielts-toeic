@@ -16,6 +16,12 @@ export interface TtsResult {
  * no-signup, no-rate-limit text-to-speech service using Microsoft's Neural
  * voices (the same engine behind Microsoft Edge's "Read Aloud" feature).
  *
+ * Both providers return mp3 (not wav) — compressed audio cuts Supabase
+ * Storage usage roughly 6x versus uncompressed wav, with no audible quality
+ * loss for speech. This matters because Supabase's free tier caps file
+ * storage at 1GB total, and every listening question's audio is cached
+ * permanently (never deleted, so it stays available for future users too).
+ *
  * Note: Edge TTS is a community-maintained wrapper around an undocumented
  * Microsoft service, not an officially published public API. It's widely
  * used and has no published rate limit, but isn't guaranteed stable long
@@ -33,10 +39,10 @@ export async function synthesizeSpeech(
       model: GROQ_TTS_MODEL,
       voice: groqVoice,
       input: text,
-      response_format: "wav",
+      response_format: "mp3",
     });
     const buffer = Buffer.from(await response.arrayBuffer());
-    return { buffer, provider: "groq", contentType: "audio/wav", ext: "wav" };
+    return { buffer, provider: "groq", contentType: "audio/mpeg", ext: "mp3" };
   } catch (groqError: any) {
     console.error("Groq TTS gagal, fallback ke Edge TTS:", groqError?.message ?? groqError);
     try {

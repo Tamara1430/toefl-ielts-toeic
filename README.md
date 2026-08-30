@@ -159,6 +159,16 @@ Selama Generate Umum/Spesifik/Voices berjalan, admin panel menampilkan:
 
 Cara kerja: server update kolom `current_step` di tabel `generation_jobs` sesaat sebelum mulai memproses tiap item, client polling status itu tiap 1.5 detik selama proses berjalan.
 
+## Storage: kenapa soal tidak perlu dihapus, dan tetap muat di free tier
+
+Supabase free tier: **500MB database** (teks soal) + **1GB file storage** (audio) + 5GB bandwidth/bulan.
+
+**Teks soal praktis tidak jadi masalah** — bank soal (semua kombinasi × target 60 soal) cuma sekitar 1.600-an baris JSON, totalnya beberapa MB saja dari kuota 500MB. Soal-soal ini memang didesain untuk **tidak pernah dihapus** — begitu ada, tetap tersedia buat user baru mana pun, tidak ada logic auto-cleanup yang perlu kamu khawatirkan.
+
+**Audio itu yang berat**, dan di situ ada 1 perbaikan penting: sebelumnya audio disimpan format **WAV** (tidak dikompres, ~384KB per giliran bicara). Sekarang diganti ke **MP3** (~64KB per giliran, kualitas suara tetap bagus untuk telinga manusia) — irit sampai ~6x. Dengan format ini, bank listening penuh (~540 soal × ~7 giliran) diperkirakan cuma makan **~250MB dari kuota 1GB** — masih ada banyak ruang buat terus tumbuh.
+
+> Catatan: audio yang **sudah** ter-generate sebelum perubahan ini (format WAV) tetap ada apa adanya, tidak otomatis dikonversi ulang — cuma audio **baru** ke depannya yang pakai MP3. Ini aman, tidak perlu tindakan apa pun dari kamu; storage-nya cuma makin lambat bertambah dari sekarang.
+
 ## Kontrol biaya bank soal & realita limit harian Groq
 
 Diatur di `lib/questionGeneration.ts`:
