@@ -163,9 +163,9 @@ Cara kerja: server update kolom `current_step` di tabel `generation_jobs` sesaat
 
 Supabase free tier: **500MB database** (teks soal) + **1GB file storage** (audio) + 5GB bandwidth/bulan.
 
-**Teks soal praktis tidak jadi masalah** — bank soal (semua kombinasi × target 60 soal) cuma sekitar 1.600-an baris JSON, totalnya beberapa MB saja dari kuota 500MB. Soal-soal ini memang didesain untuk **tidak pernah dihapus** — begitu ada, tetap tersedia buat user baru mana pun, tidak ada logic auto-cleanup yang perlu kamu khawatirkan.
+**Teks soal praktis tidak jadi masalah** — bank soal penuh (27 kombinasi × target 150 soal = ~4.050 baris) cuma sekitar belasan MB saja dari kuota 500MB. Soal-soal ini memang didesain untuk **tidak pernah dihapus** — begitu ada, tetap tersedia buat user baru mana pun, tidak ada logic auto-cleanup yang perlu kamu khawatirkan.
 
-**Audio itu yang berat**, dan di situ ada 1 perbaikan penting: sebelumnya audio disimpan format **WAV** (tidak dikompres, ~384KB per giliran bicara). Sekarang diganti ke **MP3** (~64KB per giliran, kualitas suara tetap bagus untuk telinga manusia) — irit sampai ~6x. Dengan format ini, bank listening penuh (~540 soal × ~7 giliran) diperkirakan cuma makan **~250MB dari kuota 1GB** — masih ada banyak ruang buat terus tumbuh.
+**Audio itu yang berat**, dan di situ ada 1 perbaikan penting: sebelumnya audio disimpan format **WAV** (tidak dikompres, ~384KB per giliran bicara). Sekarang diganti ke **MP3** (~64KB per giliran, kualitas suara tetap bagus untuk telinga manusia) — irit sampai ~6x. Dengan format ini, bank listening penuh (9 kombinasi × 150 soal × ~7 giliran ≈ 9.450 giliran bicara) diperkirakan makan **~600MB dari kuota 1GB** — masih ada sisa ruang, tapi sudah lebih mepet dari sebelumnya. Kalau nanti kamu mau naikkan `MIN_POOL_SIZE` lagi, cek dulu sisa storage di Supabase Dashboard → Storage sebelum menaikkan terlalu jauh.
 
 > Catatan: audio yang **sudah** ter-generate sebelum perubahan ini (format WAV) tetap ada apa adanya, tidak otomatis dikonversi ulang — cuma audio **baru** ke depannya yang pakai MP3. Ini aman, tidak perlu tindakan apa pun dari kamu; storage-nya cuma makin lambat bertambah dari sekarang.
 
@@ -174,18 +174,19 @@ Supabase free tier: **500MB database** (teks soal) + **1GB file storage** (audio
 Diatur di `lib/questionGeneration.ts`:
 
 ```ts
-export const MIN_POOL_SIZE = 60;  // target stok per kombinasi (butuh waktu berminggu-minggu untuk penuh dari nol, itu wajar)
+export const MIN_POOL_SIZE = 150; // target stok per kombinasi (dibatasi kapasitas storage 1GB Supabase, lihat bagian Storage di atas)
 export const TOP_UP_BATCH = 5;    // maksimal nambah berapa soal per run top-up, per kombinasi
 ```
 
 **Limit resmi Groq free tier untuk `openai/gpt-oss-120b`** (dicek Agustus 2026): 30 request/menit, 1.000 request/hari, 8.000 token/menit, **200.000 token/hari**. Yang paling ketat itu **token per hari**, bukan jumlah request — karena tiap generate soal makan ~1.000-2.000 token, realistisnya cuma sekitar **~100-130 kali generate soal per hari total**, gabungan dari SEMUA 27 kombinasi (3 exam × 3 section × 3 kesulitan).
 
 Konsekuensinya:
-- **Membangun stok dari nol sampai 60/kombinasi butuh waktu ~2-3 minggu**, bukan sekali jalan — ini wajar untuk free tier, bukan bug.
+- **Membangun stok dari nol sampai 150/kombinasi butuh waktu ~5-7 minggu**, bukan sekali jalan — ini wajar untuk free tier, bukan bug. Cron tetap jalan di background tiap jam, kamu tidak perlu lakukan apa-apa selain sabar menunggu.
 - Kalau kena limit harian di tengah proses, sistem berhenti rapi (fitur rate-limit detection) dan kasih tahu di hasilnya — tinggal nunggu reset besok, cron otomatis lanjut lagi.
 - **Urutan kombinasi diacak tiap kali run** — supaya kalau limit harian kena di tengah jalan, bukan selalu kombinasi yang sama (misal TOEFL selalu menang, TOEIC selalu buntung) yang dapat jatah tiap hari.
+- Kalau butuh cepat untuk kombinasi tertentu, pakai **Generate Spesifik** di admin panel — tidak perlu nunggu giliran top-up otomatis.
 
-Kalau kamu upgrade ke Groq berbayar nanti, limit-nya naik signifikan — tinggal naikkan lagi `TOP_UP_BATCH` di file yang sama.
+Kalau kamu upgrade ke Groq berbayar nanti, limit-nya naik signifikan — tinggal naikkan lagi `TOP_UP_BATCH` di file yang sama supaya lebih cepat penuh.
 
 Kalau suatu saat mau tetap ada batas atas (misalnya biar tidak kebablasan kalau ada bug generate berulang), tinggal tambahkan lagi pengecekan `MAX_POOL_SIZE` di 2 fungsi (`topUpAllPools` dan `topUpOne`) di file yang sama.
 
@@ -241,6 +242,12 @@ lib/
 ```
 
 ---
+
+## Suara Sesuai Gender Karakter
+
+Sebelumnya pemilihan suara TTS murni berdasarkan **urutan siapa yang ngomong duluan** dalam dialog — jadi karakter bernama "Lisa" bisa saja kebagian suara laki-laki kalau kebetulan bukan yang pertama bicara. Sekarang diperbaiki: saat generate soal, AI diminta secara eksplisit menentukan gender tiap karakter (`"gender": "male" | "female"` per giliran bicara di data soal), dan sistem pilih suara dari pool **khusus gender itu** — "Lisa" selalu dapat suara wanita, "Man" selalu dapat suara laki-laki, tidak peduli urutan bicaranya.
+
+**Soal listening yang sudah lebih dulu ada** (dibuat sebelum perbaikan ini) tidak punya data gender, jadi tetap pakai logika lama (urut bergantian) sampai soal itu di-generate ulang. Ini bukan sesuatu yang perlu kamu bereskan manual — soal baru ke depannya otomatis benar, dan lama-lama proporsi soal lama yang "ketuker" akan makin kecil seiring bank soal terus tumbuh.
 
 ## TTS Fallback: Groq Orpheus → Edge TTS (gratis tanpa limit)
 

@@ -2,10 +2,18 @@
 
 import { useRef, useState } from "react";
 import { Volume2, Loader2, Square, Mic2 } from "lucide-react";
-import { ORPHEUS_VOICE_POOL, EDGE_TTS_VOICE_POOL } from "@/lib/examConfig";
+import {
+  ORPHEUS_VOICE_POOL,
+  ORPHEUS_VOICE_POOL_MALE,
+  ORPHEUS_VOICE_POOL_FEMALE,
+  EDGE_TTS_VOICE_POOL,
+  EDGE_TTS_VOICE_POOL_MALE,
+  EDGE_TTS_VOICE_POOL_FEMALE,
+} from "@/lib/examConfig";
 
 export interface DialogueTurn {
   speaker: string;
+  gender?: "male" | "female";
   text: string;
   audioUrl?: string;
 }
@@ -25,18 +33,42 @@ const SPEAKER_BADGE_COLORS = [
   "bg-rose-100 text-rose-700 border-rose-200",
 ];
 
+// Gender-aware voice assignment (matches lib/audioGeneration.ts's server-side
+// logic) — only used as a live fallback for older cached-audio-less
+// questions. If the question has a declared gender per speaker, this picks a
+// matching voice; otherwise falls back to the old alternating pool.
 function buildSpeakerMap(turns: DialogueTurn[]) {
   const map = new Map<string, { voice: string; edgeVoice: string; colorClass: string }>();
-  let i = 0;
+  let maleIndex = 0;
+  let femaleIndex = 0;
+  let fallbackIndex = 0;
+  let colorIndex = 0;
+
   for (const t of turns) {
-    if (!map.has(t.speaker)) {
-      map.set(t.speaker, {
-        voice: ORPHEUS_VOICE_POOL[i % ORPHEUS_VOICE_POOL.length],
-        edgeVoice: EDGE_TTS_VOICE_POOL[i % EDGE_TTS_VOICE_POOL.length],
-        colorClass: SPEAKER_BADGE_COLORS[i % SPEAKER_BADGE_COLORS.length],
-      });
-      i++;
+    if (map.has(t.speaker)) continue;
+
+    let voice: string;
+    let edgeVoice: string;
+    if (t.gender === "male") {
+      voice = ORPHEUS_VOICE_POOL_MALE[maleIndex % ORPHEUS_VOICE_POOL_MALE.length];
+      edgeVoice = EDGE_TTS_VOICE_POOL_MALE[maleIndex % EDGE_TTS_VOICE_POOL_MALE.length];
+      maleIndex++;
+    } else if (t.gender === "female") {
+      voice = ORPHEUS_VOICE_POOL_FEMALE[femaleIndex % ORPHEUS_VOICE_POOL_FEMALE.length];
+      edgeVoice = EDGE_TTS_VOICE_POOL_FEMALE[femaleIndex % EDGE_TTS_VOICE_POOL_FEMALE.length];
+      femaleIndex++;
+    } else {
+      voice = ORPHEUS_VOICE_POOL[fallbackIndex % ORPHEUS_VOICE_POOL.length];
+      edgeVoice = EDGE_TTS_VOICE_POOL[fallbackIndex % EDGE_TTS_VOICE_POOL.length];
+      fallbackIndex++;
     }
+
+    map.set(t.speaker, {
+      voice,
+      edgeVoice,
+      colorClass: SPEAKER_BADGE_COLORS[colorIndex % SPEAKER_BADGE_COLORS.length],
+    });
+    colorIndex++;
   }
   return map;
 }

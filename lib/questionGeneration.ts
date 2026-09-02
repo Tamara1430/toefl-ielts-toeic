@@ -44,11 +44,12 @@ Difficulty: ${difficulty}.
 
 Create ONE short listening scenario in the authentic style of this exam, structured as a sequence of spoken turns. This will be converted to audio via text-to-speech with a DIFFERENT voice per speaker, so speakers must be clearly distinguishable roles.
 
-- If a dialogue fits the exam style better (most common), use exactly 2 distinct speakers with realistic roles that fit the context (e.g. "Woman", "Man", "Student", "Professor", "Customer", "Employee").
+- If a dialogue fits the exam style better (most common), use exactly 2 distinct speakers with realistic roles that fit the context (e.g. "Woman", "Man", "Student", "Professor", "Customer", "Employee", or a first name like "Lisa" or "Mark").
 - If a monologue fits better (e.g. an announcement, a short lecture excerpt, a voicemail), use exactly 1 speaker.
 - Use 6-10 short turns for a dialogue (each turn 1-3 sentences) or 3-5 turns for a monologue, totaling roughly 100-180 words combined.
 - Write the text the way people actually speak it aloud (natural phrasing, contractions where appropriate).
 - Keep the same speaker label spelled identically every time they speak (e.g. always "Woman", never switch to "Female Speaker" partway through).
+- For EVERY turn, declare that speaker's gender as "male" or "female" — pick whichever gender the character's name/role implies (e.g. "Lisa" → female, "Man" → male, "Professor" → your choice, but stay consistent). This is used to pick a matching voice, so it must be accurate and identical every time that same speaker appears.
 
 Then write exactly 4 multiple-choice comprehension questions in the authentic style of this exam.
 
@@ -56,7 +57,7 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching this exact s
 {
   "title": string,
   "turns": [
-    { "speaker": string, "text": string }
+    { "speaker": string, "gender": "male" | "female", "text": string }
   ],
   "questions": [
     {
@@ -145,10 +146,19 @@ export const ALL_DIFFICULTIES: Difficulty[] = ["beginner", "intermediate", "adva
 
 /** Target pool size per (exam, section, difficulty) combo — top-up keeps going
  * until each combo reaches this, giving a much bigger buffer against Groq's
- * daily free-tier rate limit instead of stopping at a tiny stock. Reaching
- * this from empty takes many days/weeks on the free tier (see TOP_UP_BATCH
- * comment below) — that's expected, not a bug. */
-export const MIN_POOL_SIZE = 60;
+ * daily free-tier rate limit instead of stopping at a tiny stock.
+ *
+ * Bounded by Supabase's free-tier 1GB Storage cap (audio is the only heavy
+ * part — question text itself is negligible even at thousands of rows): at
+ * ~64KB/turn (mp3) × ~7 turns/question average, keeping every combo under
+ * ~200 questions stays safely under 1GB across all 9 listening combos, with
+ * headroom to spare. 150 leaves a comfortable double safety margin under
+ * that ceiling. Reading/speaking combos cost nothing extra in Storage (no
+ * audio), so the same target is fine for them too.
+ *
+ * Reaching this from empty takes many weeks on the free tier (see
+ * TOP_UP_BATCH comment below) — that's expected, not a bug. */
+export const MIN_POOL_SIZE = 150;
 /**
  * How many questions to add per top-up run, per combo.
  *

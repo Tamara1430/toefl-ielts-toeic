@@ -1,10 +1,18 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ORPHEUS_VOICE_POOL, EDGE_TTS_VOICE_POOL } from "@/lib/examConfig";
+import {
+  ORPHEUS_VOICE_POOL,
+  ORPHEUS_VOICE_POOL_MALE,
+  ORPHEUS_VOICE_POOL_FEMALE,
+  EDGE_TTS_VOICE_POOL,
+  EDGE_TTS_VOICE_POOL_MALE,
+  EDGE_TTS_VOICE_POOL_FEMALE,
+} from "@/lib/examConfig";
 import { isJobCancelled, setJobProgress } from "@/lib/generationJobs";
 import { synthesizeSpeech } from "@/lib/ttsProvider";
 
 export interface DialogueTurn {
   speaker: string;
+  gender?: "male" | "female";
   text: string;
   audioUrl?: string;
   ttsProvider?: "groq" | "edge";
@@ -18,19 +26,47 @@ interface ListeningPayload {
 
 const BUCKET = "tts-audio";
 
-/** Assign a consistent voice pair (Groq + Edge fallback) per unique speaker,
- * round-robin, in order of first appearance — so whichever provider ends up
- * generating a given turn, the speaker's voice choice stays consistent. */
+/**
+ * Assign a consistent voice pair (Groq + Edge fallback) per unique speaker.
+ *
+ * Gender-aware: if the turn declares a gender (from newer generations, where
+ * the AI is asked to specify it), pick from that gender's dedicated voice
+ * pool — so "Lisa" always gets a female voice, "Man" always gets a male one,
+ * regardless of who happens to speak first. This fixes voices getting
+ * mismatched to the wrong gender based on speaking order alone.
+ *
+ * Falls back to the old combined alternating pool (round-robin, gender
+ * agnostic) for older questions generated before the `gender` field existed.
+ */
 function assignVoices(turns: DialogueTurn[]): Map<string, { groq: string; edge: string }> {
   const map = new Map<string, { groq: string; edge: string }>();
-  let i = 0;
+  let maleIndex = 0;
+  let femaleIndex = 0;
+  let fallbackIndex = 0;
+
   for (const t of turns) {
-    if (!map.has(t.speaker)) {
+    if (map.has(t.speaker)) continue;
+
+    if (t.gender === "male") {
       map.set(t.speaker, {
-        groq: ORPHEUS_VOICE_POOL[i % ORPHEUS_VOICE_POOL.length],
-        edge: EDGE_TTS_VOICE_POOL[i % EDGE_TTS_VOICE_POOL.length],
+        groq: ORPHEUS_VOICE_POOL_MALE[maleIndex % ORPHEUS_VOICE_POOL_MALE.length],
+        edge: EDGE_TTS_VOICE_POOL_MALE[maleIndex % EDGE_TTS_VOICE_POOL_MALE.length],
       });
-      i++;
+      maleIndex++;
+    } else if (t.gender === "female") {
+      map.set(t.speaker, {
+        groq: ORPHEUS_VOICE_POOL_FEMALE[femaleIndex % ORPHEUS_VOICE_POOL_FEMALE.length],
+        edge: EDGE_TTS_VOICE_POOL_FEMALE[femaleIndex % EDGE_TTS_VOICE_POOL_FEMALE.length],
+      });
+      femaleIndex++;
+    } else {
+      // No gender declared (older question) — fall back to the previous
+      // gender-agnostic alternating behavior.
+      map.set(t.speaker, {
+        groq: ORPHEUS_VOICE_POOL[fallbackIndex % ORPHEUS_VOICE_POOL.length],
+        edge: EDGE_TTS_VOICE_POOL[fallbackIndex % EDGE_TTS_VOICE_POOL.length],
+      });
+      fallbackIndex++;
     }
   }
   return map;

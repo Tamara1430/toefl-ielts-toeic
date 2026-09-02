@@ -39,8 +39,16 @@ export const GROQ_STT_MODEL = "whisper-large-v3-turbo";
 export const GROQ_TTS_MODEL = "canopylabs/orpheus-v1-english";
 // Available Orpheus English voices: autumn, diana, hannah, austin, daniel, troy
 export const GROQ_TTS_VOICE = "autumn";
-// Pool of distinct voices assigned round-robin to each speaker in a listening
-// dialogue, so different speakers actually sound different.
+// Pool of distinct voices assigned per speaker in a listening dialogue, split
+// by gender so voice selection can match the AI-declared gender of each
+// character (e.g. a character named "Lisa" always gets a female voice,
+// regardless of what order she happens to speak in — NOT a simple
+// alternating round-robin, which previously could hand a "Man" character a
+// female voice just because he happened to speak first).
+export const ORPHEUS_VOICE_POOL_FEMALE = ["autumn", "diana", "hannah"] as const;
+export const ORPHEUS_VOICE_POOL_MALE = ["austin", "troy", "daniel"] as const;
+// Kept for backward compatibility (old cached audio / questions generated
+// before gender-aware assignment existed) — combined pool, alternating.
 export const ORPHEUS_VOICE_POOL = [
   "autumn",
   "austin",
@@ -51,10 +59,18 @@ export const ORPHEUS_VOICE_POOL = [
 ] as const;
 
 // Fallback TTS voices (Microsoft Edge neural voices via edge-tts-universal),
-// used only when Groq TTS fails (rate limit/quota/etc). Same-length pool,
-// alternating gender, indexed the same way as ORPHEUS_VOICE_POOL so a given
-// speaker maps consistently to "voice #N" regardless of which provider ends
-// up generating that particular turn.
+// used only when Groq TTS fails (rate limit/quota/etc). Same gender-split
+// structure as the Orpheus pools above.
+export const EDGE_TTS_VOICE_POOL_FEMALE = [
+  "en-US-AriaNeural",
+  "en-US-JennyNeural",
+  "en-US-EmmaNeural",
+] as const;
+export const EDGE_TTS_VOICE_POOL_MALE = [
+  "en-US-GuyNeural",
+  "en-US-DavisNeural",
+  "en-US-BrianNeural",
+] as const;
 export const EDGE_TTS_VOICE_POOL = [
   "en-US-AriaNeural",
   "en-US-GuyNeural",
