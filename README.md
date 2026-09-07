@@ -233,6 +233,7 @@ lib/
   serverAuth.ts                  → helper requireAdmin() / requireUser() untuk API routes
   questionGeneration.ts          → logika generate + top-up (umum & spesifik), dipakai admin & cron
   audioGeneration.ts             → generate + cache audio TTS listening ke Supabase Storage
+  fixGender.ts                    → migrasi: klasifikasi gender + regenerate audio soal lama
   ttsProvider.ts                 → fallback Groq Orpheus → Edge TTS kalau Groq gagal
   generationJobs.ts              → kontrol job cancellable (dipakai tombol Batalkan)
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
@@ -247,7 +248,11 @@ lib/
 
 Sebelumnya pemilihan suara TTS murni berdasarkan **urutan siapa yang ngomong duluan** dalam dialog — jadi karakter bernama "Lisa" bisa saja kebagian suara laki-laki kalau kebetulan bukan yang pertama bicara. Sekarang diperbaiki: saat generate soal, AI diminta secara eksplisit menentukan gender tiap karakter (`"gender": "male" | "female"` per giliran bicara di data soal), dan sistem pilih suara dari pool **khusus gender itu** — "Lisa" selalu dapat suara wanita, "Man" selalu dapat suara laki-laki, tidak peduli urutan bicaranya.
 
-**Soal listening yang sudah lebih dulu ada** (dibuat sebelum perbaikan ini) tidak punya data gender, jadi tetap pakai logika lama (urut bergantian) sampai soal itu di-generate ulang. Ini bukan sesuatu yang perlu kamu bereskan manual — soal baru ke depannya otomatis benar, dan lama-lama proporsi soal lama yang "ketuker" akan makin kecil seiring bank soal terus tumbuh.
+**Soal listening yang sudah lebih dulu ada** (dibuat sebelum perbaikan ini) tidak punya data gender. Ada tombol **"Perbaiki Gender Suara"** di `/admin` untuk memperbaikinya tanpa membuang soal yang sudah ada:
+
+- Teks soal & pertanyaan **tidak diubah sama sekali** — cuma AI diminta klasifikasi gender tiap nama karakter (panggilan super murah, ~150 token, jauh lebih hemat dari generate ulang soal ~1.500 token).
+- Audio lama yang mungkin salah otomatis di-generate ulang pakai suara yang sesuai gender yang baru diklasifikasi.
+- Aman diklik berkali-kali — soal yang sudah punya data gender otomatis di-skip.
 
 ## TTS Fallback: Groq Orpheus → Edge TTS (gratis tanpa limit)
 

@@ -19,6 +19,7 @@ import {
   Target,
   X,
   ChevronDown,
+  Wand2,
 } from "lucide-react";
 
 interface StockRow {
@@ -142,6 +143,13 @@ export default function AdminStockPage() {
   );
   const [voiceErrors, setVoiceErrors] = useState<string[]>([]);
   const stepVoices = useJobProgress(voicesJobId, generatingVoices);
+
+  // Fix gender (migration for old listening questions missing gender data)
+  const [fixingGender, setFixingGender] = useState(false);
+  const [genderProgress, setGenderProgress] = useState<{ processed: number; total: number } | null>(
+    null
+  );
+  const [genderErrors, setGenderErrors] = useState<string[]>([]);
 
   async function loadStock() {
     setLoading(true);
@@ -273,6 +281,35 @@ export default function AdminStockPage() {
     } finally {
       setGeneratingVoices(false);
       setVoicesJobId(null);
+    }
+  }
+
+  async function handleFixGender() {
+    setFixingGender(true);
+    setError(null);
+    setGenderErrors([]);
+    setGenderProgress(null);
+
+    let totalProcessed = 0;
+    let remaining = 1;
+
+    try {
+      while (remaining > 0) {
+        const res = await fetch("/api/admin/fix-gender", { method: "POST" });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Gagal perbaiki gender.");
+
+        totalProcessed += json.processed;
+        remaining = json.remaining;
+        setGenderProgress({ processed: totalProcessed, total: totalProcessed + remaining });
+        if (json.errors?.length) setGenderErrors((prev) => [...prev, ...json.errors]);
+
+        if (json.processed === 0 && remaining > 0) break; // safety
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setFixingGender(false);
     }
   }
 
@@ -573,6 +610,49 @@ export default function AdminStockPage() {
         {voiceErrors.length > 0 && (
           <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 max-h-32 overflow-y-auto">
             {voiceErrors.map((e, i) => (
+              <p key={i}>{e}</p>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Fix Gender (migration for old listening questions) */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <Wand2 size={15} className="text-indigo-600" />
+              <h3 className="font-medium text-neutral-900 text-sm">Perbaiki Gender Suara</h3>
+            </div>
+            <p className="text-xs text-neutral-400 mt-1 max-w-md">
+              Untuk soal listening lama yang dibuat sebelum sistem gender-aware ada (kadang suara
+              tidak sesuai gender karakter, misal "Lisa" tapi suaranya pria). Teks soal tidak
+              diubah — cuma gender diklasifikasi ulang (murah) lalu audionya di-generate ulang
+              pakai suara yang sesuai. Aman dijalankan berkali-kali.
+            </p>
+          </div>
+          <button
+            onClick={handleFixGender}
+            disabled={fixingGender}
+            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
+          >
+            {fixingGender ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
+            {fixingGender ? "Memproses..." : "Perbaiki Gender Suara"}
+          </button>
+        </div>
+
+        {genderProgress && (
+          <p className="text-xs text-neutral-600 mt-3">
+            Diproses {genderProgress.processed} dari {genderProgress.total} soal listening yang
+            butuh perbaikan gender.
+            {!fixingGender && genderProgress.total > 0 && genderProgress.processed === 0 && (
+              <span className="text-green-700"> Semua soal listening sudah punya data gender ✓</span>
+            )}
+          </p>
+        )}
+        {genderErrors.length > 0 && (
+          <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+            {genderErrors.map((e, i) => (
               <p key={i}>{e}</p>
             ))}
           </div>
