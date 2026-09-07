@@ -254,6 +254,12 @@ Sebelumnya pemilihan suara TTS murni berdasarkan **urutan siapa yang ngomong dul
 - Audio lama yang mungkin salah otomatis di-generate ulang pakai suara yang sesuai gender yang baru diklasifikasi.
 - Aman diklik berkali-kali — soal yang sudah punya data gender otomatis di-skip.
 
+**Soal generate baru** (dari Generate Umum/Spesifik/cron) **otomatis** sudah minta AI sertakan gender sejak awal — tidak perlu tombol "Perbaiki Gender Suara" sama sekali, itu murni buat beresin sisa-sisa soal lama.
+
+**Cara pantau progresnya:**
+- Kartu "Perbaiki Gender Suara" di `/admin` langsung menampilkan angka total soal yang masih butuh perbaikan begitu halaman dibuka (tidak perlu klik apa pun dulu).
+- Klik salah satu baris di tabel Stok Soal untuk expand daftar soalnya — tiap soal listening punya badge **"Gender OK"** (hijau) atau **"Gender belum"** (kuning), plus tombol **"Perbaiki"** kalau mau benerin satu soal spesifik saja tanpa nunggu proses bulk.
+
 ## TTS Fallback: Groq Orpheus → Edge TTS (gratis tanpa limit)
 
 Groq Orpheus TTS (suara AI, ekspresif) tetap jadi **prioritas utama**. Tapi karena free tier Orpheus cuma 100 request/hari (gampang habis untuk banyak soal listening × banyak giliran bicara), sekarang ada **fallback otomatis**: kalau Groq TTS gagal karena alasan apa pun (rate limit, kuota habis, dll), sistem langsung coba **Edge TTS** — layanan text-to-speech gratis tanpa API key/kartu kredit/rate limit resmi, memakai suara Microsoft Neural (kualitas natural, setara Azure TTS berbayar).

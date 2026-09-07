@@ -150,6 +150,7 @@ export default function AdminStockPage() {
     null
   );
   const [genderErrors, setGenderErrors] = useState<string[]>([]);
+  const [genderCountLoading, setGenderCountLoading] = useState(true);
 
   async function loadStock() {
     setLoading(true);
@@ -167,8 +168,24 @@ export default function AdminStockPage() {
     }
   }
 
+  async function loadGenderCount() {
+    setGenderCountLoading(true);
+    try {
+      const res = await fetch("/api/admin/fix-gender");
+      const json = await res.json();
+      if (res.ok) {
+        setGenderProgress({ processed: 0, total: json.totalNeeding });
+      }
+    } catch {
+      // non-critical — just skip showing the count if this fails
+    } finally {
+      setGenderCountLoading(false);
+    }
+  }
+
   useEffect(() => {
     loadStock();
+    loadGenderCount();
   }, []);
 
   async function handleGenerateAll() {
@@ -641,12 +658,21 @@ export default function AdminStockPage() {
           </button>
         </div>
 
+        {genderCountLoading && !genderProgress && (
+          <p className="text-xs text-neutral-400 mt-3">Mengecek jumlah yang perlu diperbaiki...</p>
+        )}
         {genderProgress && (
           <p className="text-xs text-neutral-600 mt-3">
-            Diproses {genderProgress.processed} dari {genderProgress.total} soal listening yang
-            butuh perbaikan gender.
-            {!fixingGender && genderProgress.total > 0 && genderProgress.processed === 0 && (
-              <span className="text-green-700"> Semua soal listening sudah punya data gender ✓</span>
+            {fixingGender ? (
+              <>Diproses {genderProgress.processed} dari {genderProgress.total} soal listening yang butuh perbaikan gender.</>
+            ) : genderProgress.total === 0 ? (
+              <span className="text-green-700">Semua soal listening sudah punya data gender ✓</span>
+            ) : genderProgress.processed >= genderProgress.total ? (
+              <span className="text-green-700">
+                {genderProgress.processed} soal berhasil diperbaiki ✓
+              </span>
+            ) : (
+              <>{genderProgress.total} soal listening butuh perbaikan gender. Klik tombol di atas untuk mulai.</>
             )}
           </p>
         )}

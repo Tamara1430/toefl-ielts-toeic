@@ -9,6 +9,37 @@ export const maxDuration = 300;
 const MAX_QUESTIONS_PER_RUN = 8;
 const TIME_BUDGET_MS = 250_000;
 
+async function countNeedingFix() {
+  const admin = createAdminClient();
+  const { data: listeningQs, error } = await admin
+    .from("questions")
+    .select("id, payload")
+    .eq("section", "listening");
+
+  if (error) throw new Error(error.message);
+
+  return (listeningQs ?? []).filter((q) => {
+    const turns = (q.payload as any)?.turns;
+    return Array.isArray(turns) && turns.some((t: any) => !t.gender);
+  }).length;
+}
+
+/** Lightweight count-only check — does no processing. Used to show
+ * "X soal butuh diperbaiki" on page load, before the admin clicks anything. */
+export async function GET() {
+  const auth = await requireAdmin();
+  if ("error" in auth) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  try {
+    const totalNeeding = await countNeedingFix();
+    return NextResponse.json({ totalNeeding });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message ?? "Gagal menghitung." }, { status: 500 });
+  }
+}
+
 export async function POST() {
   const auth = await requireAdmin();
   if ("error" in auth) {
