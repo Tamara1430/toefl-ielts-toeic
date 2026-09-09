@@ -14,10 +14,17 @@ export default function LatihanPage() {
   return (
     <main className="min-h-screen bg-neutral-50 pb-24">
       <div className="max-w-3xl mx-auto px-5 pt-8">
-        <h1 className="text-2xl font-bold text-neutral-900">Pilih Latihan</h1>
-        <p className="text-neutral-500 mt-1 mb-6 text-sm">
-          Setiap exam punya 3 mode: Reading, Listening, dan Speaking.
-        </p>
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-neutral-900">Pilih Latihan</h1>
+            <p className="text-neutral-500 mt-1 text-sm">
+              Setiap exam punya 3 mode: Reading, Listening, dan Speaking.
+            </p>
+          </div>
+          <Link href="/billing" className="text-xs text-indigo-600 font-medium shrink-0 pt-1">
+            Lihat Paket
+          </Link>
+        </div>
 
         <div className="flex flex-col gap-4">
           {exams.map((exam) => (

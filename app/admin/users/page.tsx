@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2, UserPlus, Trash2, ShieldCheck, BookOpenText, Headphones, Mic } from "lucide-react";
+import { ExamType, EXAM_LABELS } from "@/lib/examConfig";
 
 interface UserProgress {
   total: number;
@@ -11,15 +12,21 @@ interface UserProgress {
   lastActivity: string | null;
 }
 
+type EntitlementLevel = "free" | "ujian" | "premium";
+type Entitlements = Partial<Record<ExamType, "ujian" | "premium">>;
+
 interface UserRow {
   id: string;
   email: string;
   role: "user" | "admin";
   is_active: boolean;
   paid_until: string | null;
+  entitlements: Entitlements;
   created_at: string;
   progress: UserProgress;
 }
+
+const exams: ExamType[] = ["toefl", "ielts", "toeic"];
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
@@ -93,6 +100,21 @@ export default function AdminUsersPage() {
     loadUsers();
   }
 
+  async function updateEntitlement(user: UserRow, exam: ExamType, level: EntitlementLevel) {
+    const next: Entitlements = { ...user.entitlements };
+    if (level === "free") {
+      delete next[exam];
+    } else {
+      next[exam] = level;
+    }
+    await fetch(`/api/admin/users/${user.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ entitlements: next }),
+    });
+    loadUsers();
+  }
+
   async function handleDelete(user: UserRow) {
     if (!confirm(`Hapus akun ${user.email}? Tindakan ini tidak bisa dibatalkan.`)) return;
     const res = await fetch(`/api/admin/users/${user.id}`, { method: "DELETE" });
@@ -118,7 +140,7 @@ export default function AdminUsersPage() {
         >
           <p className="text-xs text-neutral-500">
             Buat akun untuk user yang pembayarannya sudah kamu verifikasi manual. Akun langsung
-            aktif.
+            aktif (default free tier — atur paket per-exam-nya di bawah setelah dibuat).
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
@@ -240,6 +262,27 @@ export default function AdminUsersPage() {
                 )}
               </div>
             </div>
+
+            {u.role !== "admin" && (
+              <div className="grid grid-cols-3 gap-2">
+                {exams.map((exam) => (
+                  <div key={exam} className="flex flex-col gap-1">
+                    <label className="text-xs text-neutral-400">{EXAM_LABELS[exam]}</label>
+                    <select
+                      value={u.entitlements?.[exam] ?? "free"}
+                      onChange={(e) =>
+                        updateEntitlement(u, exam, e.target.value as EntitlementLevel)
+                      }
+                      className="rounded-lg border border-neutral-200 px-2 py-1.5 text-xs bg-white"
+                    >
+                      <option value="free">Free</option>
+                      <option value="ujian">Ujian saja</option>
+                      <option value="premium">Premium</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {u.progress.total > 0 ? (
               <div className="flex items-center gap-4 text-xs text-neutral-500 bg-neutral-50 rounded-lg px-3 py-2 w-fit">

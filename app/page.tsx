@@ -69,6 +69,12 @@ export default function DashboardPage() {
               <Flame size={16} className="text-orange-500" />
               <span className="text-sm font-semibold text-orange-600">{streak}</span>
             </div>
+            <Link
+              href="/billing"
+              className="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2"
+            >
+              Paket
+            </Link>
             <LogoutButton className="text-xs text-neutral-400 hover:text-red-600 transition" />
           </div>
         </div>

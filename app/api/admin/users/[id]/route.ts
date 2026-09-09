@@ -15,6 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const update: Record<string, unknown> = {};
   if (typeof body.is_active === "boolean") update.is_active = body.is_active;
   if (body.paid_until !== undefined) update.paid_until = body.paid_until || null;
+  if (body.entitlements !== undefined) update.entitlements = body.entitlements;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Tidak ada field untuk diupdate." }, { status: 400 });

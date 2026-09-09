@@ -59,6 +59,8 @@ Semua ini otomatis aman dari ke-commit ke Git karena `.gitignore` sudah meng-ign
 3. Buka **SQL Editor** lagi (New query, JANGAN pakai tab yang sama dengan langkah 2) → paste isi `supabase/storage.sql` → **Run**. Ini bikin storage bucket `tts-audio` untuk cache audio listening.
 4. Buka **SQL Editor** lagi (New query baru lagi) → paste isi `supabase/jobs.sql` → **Run**. Ini bikin tabel yang dipakai tombol "Batalkan" & live progress di admin panel untuk generate soal/voices.
    - Kalau kamu sudah pernah menjalankan `jobs.sql` versi lama (sebelum ada live progress), jalankan juga `supabase/jobs-update.sql` sekali untuk menambahkan kolom yang kurang.
+5. Buka **SQL Editor** lagi → paste isi `supabase/entitlements.sql` → **Run**. Ini nambah kolom `entitlements` (akses berbayar per-exam: Free/Ujian/Premium) ke tabel profiles.
+6. Buka **SQL Editor** lagi → paste isi `supabase/auto-activate.sql` → **Run**. Ini bikin akun baru langsung aktif otomatis (sekarang ada free tier, jadi tidak semua fitur butuh verifikasi bayar dulu — `is_active` sekarang murni jadi saklar admin buat blokir akun kalau perlu).
 3. Buka **Authentication → Users → Add user**. Buat akun pertamamu (email + password) — ini akan jadi admin.
 4. Balik ke **SQL Editor**, jalankan (ganti email-nya):
    ```sql
@@ -237,6 +239,8 @@ lib/
   ttsProvider.ts                 → fallback Groq Orpheus → Edge TTS kalau Groq gagal
   generationJobs.ts              → kontrol job cancellable (dipakai tombol Batalkan)
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
+  entitlements.ts                 → definisi tier akses (free/ujian/premium) & daftar paket
+  practiceQuestions.ts             → subset soal fixed untuk free tier (anti multi-akun)
   history.ts                     → baca/tulis riwayat sesi (sekarang dari Supabase)
   gamification.ts                → hitung streak, XP/level, badge
   examConfig.ts, groqClient.ts   → konfigurasi exam & Groq (sama seperti sebelumnya)
@@ -280,6 +284,41 @@ Kalau ternyata SEMUA soal yang tersisa untuk user itu audionya belum siap, muncu
 Di `/admin/users`, sekarang ada:
 - **Ringkasan total** — jumlah soal yang sudah dikerjakan semua user gabungan, di bagian atas halaman.
 - **Per-user** — total soal dikerjakan + breakdown Reading/Listening/Speaking + tanggal terakhir aktif, ditampilkan di bawah tiap baris user.
+
+## Free Tier, Entitlement, dan Billing
+
+Sistem akses sekarang bertingkat, diatur per-exam lewat kolom `profiles.entitlements` (JSON):
+
+| Tingkat | Latihan | Ujian + Sertifikat |
+|---|---|---|
+| **Free** (default) | Terbatas: 10 Reading + 10 Listening + 3 Speaking **per exam**, dari set soal yang SAMA untuk semua akun free (lihat bagian anti-curang di bawah) | ❌ Tidak bisa akses |
+| **Ujian saja** (`"ujian"`) | Sama seperti Free (masih kena kuota) | ✅ Bisa |
+| **Premium** (`"premium"`) | Tanpa batas, seluruh bank soal | ✅ Bisa |
+
+**Cara admin mengatur akses**: buka `/admin/users`, tiap user punya 3 dropdown (TOEFL/IELTS/TOEIC) buat pilih Free/Ujian saja/Premium secara independen. "Ultimate" bukan level tersendiri di database — itu istilah marketing untuk "Premium di ketiga exam sekaligus", jadi kalau user beli Ultimate, tinggal set ketiga dropdown itu ke Premium.
+
+**Anti-curang multi-akun**: kuota free tier sengaja diambil dari **10 soal TERLAMA** (`created_at` paling awal) per exam+section, bukan diacak dari seluruh bank. Karena urutan ini tidak berubah seiring bank soal tumbuh (soal lama tetap yang paling lama), semua akun free — baik akun lama maupun baru — selalu melihat **soal yang sama persis**. Bikin akun baru tidak memberi soal baru sama sekali, jadi tidak ada untungnya untuk menghindari kuota.
+
+**Halaman Billing** (`/billing`): menampilkan semua paket (Ujian per-exam Rp20rb, Premium per-exam Rp40rb/bulan, Ultimate Rp100rb/bulan dengan badge rekomendasi). Tombol "Hubungi via WhatsApp" mengarah ke `wa.me` dengan teks otomatis "tertarik paket [nama paket]".
+
+⚠️ **WAJIB diganti sebelum deploy**: buka `app/billing/page.tsx`, cari baris:
+```ts
+const WHATSAPP_NUMBER = "6281234567890";
+```
+Ganti dengan nomor WhatsApp bisnis kamu (format: kode negara tanpa `+` atau `0` di depan).
+
+**Latihan tidak lagi minta pilih tingkat kesulitan** — user tinggal klik "Ambil Soal", sistem otomatis ambil dari campuran semua tingkat kesulitan (untuk Premium) atau dari 10 soal fixed (untuk Free). Field kesulitan soal yang terpilih tetap dicatat di riwayat/progress secara otomatis di belakang layar, cuma tidak lagi jadi pilihan manual di UI.
+
+### Pertanyaan terbuka yang perlu kamu putuskan
+
+Karena sekarang ada tingkatan Free yang bisa dipakai tanpa pembayaran, muncul pertanyaan: **apakah kamu mau buka pendaftaran publik** (orang bisa daftar sendiri buat coba free tier), **atau tetap semua akun dibuat manual oleh admin** seperti sekarang (termasuk akun free)? Saat ini masih **tanpa pendaftaran publik** — semua akun (free maupun berbayar) tetap harus kamu buatkan manual lewat `/admin/users`. Kalau kamu mau ada pendaftaran mandiri untuk free tier (supaya orang bisa coba sendiri tanpa nunggu kamu), itu perlu dibangun terpisah — kabari saya kalau mau saya lanjutkan.
+
+## Mode Ujian & Sertifikat (belum dibangun di update ini)
+
+Ini bagian yang **belum** saya bangun — akan menyusul di update berikutnya:
+- Sesi Ujian penuh (kumpulan soal tingkat Mahir yang diambil sekaligus dalam 1 sesi, bukan satu-satu seperti Latihan)
+- Bank soal Ujian terpisah dari bank Latihan, diganti/di-refresh tiap bulan
+- Halaman sertifikat hasil dengan format skor ala TOEFL (0-120) / IELTS (band 0-9) / TOEIC (10-990) — perlu dicatat ini **skor estimasi/simulasi**, bukan skor resmi dari lembaga TOEFL/IELTS/TOEIC asli, jadi labelnya harus jelas bilang "hasil latihan", bukan "sertifikat resmi", supaya tidak menyesatkan user
 
 ## Pengembangan Lanjutan (belum termasuk di v1 ini)
 

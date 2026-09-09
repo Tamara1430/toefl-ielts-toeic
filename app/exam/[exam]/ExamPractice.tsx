@@ -8,13 +8,20 @@ import {
   Difficulty,
   EXAM_LABELS,
   SECTION_LABELS,
-  DIFFICULTY_LABELS,
 } from "@/lib/examConfig";
 import { recordSession } from "@/lib/history";
 import McqQuestions, { McqQuestion } from "@/components/McqQuestions";
 import DialoguePlayer from "@/components/DialoguePlayer";
 import SpeakingSession, { SpeakingTask } from "@/components/SpeakingSession";
-import { ArrowLeft, Loader2, Sparkles, BarChart3, PackageX, Headphones } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  Sparkles,
+  BarChart3,
+  PackageX,
+  Headphones,
+  Lock,
+} from "lucide-react";
 
 interface ReadingData {
   title: string;
@@ -31,15 +38,15 @@ interface ListeningData {
 type GeneratedData = ReadingData | ListeningData | SpeakingTask;
 
 const sections: SectionType[] = ["reading", "listening", "speaking"];
-const difficulties: Difficulty[] = ["beginner", "intermediate", "advanced"];
 
 export default function ExamPractice({ exam }: { exam: ExamType }) {
   const [section, setSection] = useState<SectionType>("reading");
-  const [difficulty, setDifficulty] = useState<Difficulty>("intermediate");
   const [data, setData] = useState<GeneratedData | null>(null);
   const [questionId, setQuestionId] = useState<string | null>(null);
+  const [pickedDifficulty, setPickedDifficulty] = useState<Difficulty>("intermediate");
   const [outOfStock, setOutOfStock] = useState(false);
   const [audioPending, setAudioPending] = useState(false);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,15 +56,20 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
     setData(null);
     setOutOfStock(false);
     setAudioPending(false);
+    setQuotaExceeded(false);
     try {
       const res = await fetch("/api/practice/question", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ exam, section, difficulty }),
+        body: JSON.stringify({ exam, section }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Gagal mengambil soal.");
 
+      if (json.quotaExceeded) {
+        setQuotaExceeded(true);
+        return;
+      }
       if (json.audioPending) {
         setAudioPending(true);
         return;
@@ -68,6 +80,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
       }
       setData(json.data);
       setQuestionId(json.questionId);
+      if (json.difficulty) setPickedDifficulty(json.difficulty);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -81,6 +94,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
     setQuestionId(null);
     setOutOfStock(false);
     setAudioPending(false);
+    setQuotaExceeded(false);
     setError(null);
   }
 
@@ -106,7 +120,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
         <p className="text-neutral-500 mb-6 text-sm">Latihan soal dari bank soal AI</p>
 
         {/* Section tabs */}
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="flex gap-2 mb-6 flex-wrap">
           {sections.map((s) => (
             <button
               key={s}
@@ -122,34 +136,39 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           ))}
         </div>
 
-        {/* Difficulty + generate */}
-        <div className="flex flex-wrap items-center gap-3 mb-8">
-          <select
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value as Difficulty)}
-            className="rounded-lg border border-neutral-200 px-3 py-2 text-sm bg-white"
-          >
-            {difficulties.map((d) => (
-              <option key={d} value={d}>
-                {DIFFICULTY_LABELS[d]}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={handleGenerate}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition"
-          >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-            {loading ? "Mengambil soal..." : "Ambil Soal"}
-          </button>
-        </div>
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition mb-8"
+        >
+          {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
+          {loading ? "Mengambil soal..." : "Ambil Soal"}
+        </button>
 
         {error && (
           <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
             {error}
           </p>
+        )}
+
+        {quotaExceeded && (
+          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-6 text-center">
+            <Lock className="mx-auto text-indigo-500 mb-3" size={32} />
+            <h3 className="font-semibold text-neutral-900 mb-1">
+              Kuota gratis {SECTION_LABELS[section].toLowerCase()} sudah habis
+            </h3>
+            <p className="text-sm text-neutral-600 mb-4">
+              Kamu sudah kerjakan semua soal {SECTION_LABELS[section].toLowerCase()} gratis untuk{" "}
+              {EXAM_LABELS[exam]}. Upgrade ke Premium {EXAM_LABELS[exam]} untuk latihan tanpa
+              batas, plus akses Ujian dan sertifikat hasil skor.
+            </p>
+            <Link
+              href="/billing"
+              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition"
+            >
+              Lihat Paket
+            </Link>
+          </div>
         )}
 
         {audioPending && (
@@ -159,8 +178,8 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
               Soal ada, tapi audionya belum siap 🎧
             </h3>
             <p className="text-sm text-neutral-600 mb-1">
-              Ada soal listening {DIFFICULTY_LABELS[difficulty].toLowerCase()} untuk{" "}
-              {EXAM_LABELS[exam]} yang belum kamu kerjakan, tapi suaranya masih diproses admin.
+              Ada soal listening untuk {EXAM_LABELS[exam]} yang belum kamu kerjakan, tapi
+              suaranya masih diproses admin.
             </p>
             <p className="text-sm text-neutral-500">Tunggu sebentar lalu coba lagi, ya.</p>
           </div>
@@ -170,20 +189,20 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
             <PackageX className="mx-auto text-amber-500 mb-3" size={32} />
             <h3 className="font-semibold text-neutral-900 mb-1">
-              Waduh, stok soal habis untuk kombinasi ini 🙏
+              Waduh, stok soal habis untuk ini 🙏
             </h3>
             <p className="text-sm text-neutral-600 mb-1">
-              Kamu sudah mengerjakan semua soal {SECTION_LABELS[section].toLowerCase()} tingkat{" "}
-              {DIFFICULTY_LABELS[difficulty].toLowerCase()} yang tersedia untuk {EXAM_LABELS[exam]}.
+              Kamu sudah mengerjakan semua soal {SECTION_LABELS[section].toLowerCase()} yang
+              tersedia untuk {EXAM_LABELS[exam]}.
             </p>
             <p className="text-sm text-neutral-500">
-              Soal baru ditambahkan otomatis secara berkala — coba lagi nanti, atau coba tingkat
-              kesulitan / mode lain dulu.
+              Soal baru ditambahkan otomatis secara berkala — coba lagi nanti, atau coba mode
+              lain dulu.
             </p>
           </div>
         )}
 
-        {!data && !loading && !outOfStock && !audioPending && (
+        {!data && !loading && !outOfStock && !audioPending && !quotaExceeded && (
           <p className="text-neutral-400 text-sm">
             Klik &ldquo;Ambil Soal&rdquo; untuk mulai latihan {SECTION_LABELS[section].toLowerCase()}.
           </p>
@@ -193,7 +212,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           <ReadingView
             data={data as ReadingData}
             exam={exam}
-            difficulty={difficulty}
+            difficulty={pickedDifficulty}
             questionId={questionId}
           />
         )}
@@ -201,14 +220,14 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           <ListeningView
             data={data as ListeningData}
             exam={exam}
-            difficulty={difficulty}
+            difficulty={pickedDifficulty}
             questionId={questionId}
           />
         )}
         {data && section === "speaking" && (
           <SpeakingSession
             exam={exam}
-            difficulty={difficulty}
+            difficulty={pickedDifficulty}
             task={data as SpeakingTask}
             questionId={questionId}
           />

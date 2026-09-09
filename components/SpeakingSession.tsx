@@ -4,7 +4,7 @@ import { useState } from "react";
 import AudioRecorder from "./AudioRecorder";
 import { Difficulty, ExamType } from "@/lib/examConfig";
 import { recordSession } from "@/lib/history";
-import { Loader2 } from "lucide-react";
+import { Loader2, Mic, ShieldAlert } from "lucide-react";
 
 export interface SpeakingTask {
   title: string;
@@ -38,6 +38,7 @@ export default function SpeakingSession({
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [loadingFeedback, setLoadingFeedback] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [readyToRecord, setReadyToRecord] = useState(false);
 
   async function getFeedback(text: string) {
     setLoadingFeedback(true);
@@ -94,7 +95,26 @@ export default function SpeakingSession({
         </div>
       </div>
 
-      <AudioRecorder onTranscript={handleTranscript} disabled={loadingFeedback} />
+      {!readyToRecord ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3">
+          <p className="flex items-center gap-2 text-sm font-medium text-amber-800">
+            <ShieldAlert size={16} /> Pastikan kamu sudah siap sebelum merekam
+          </p>
+          <p className="text-sm text-neutral-700">
+            Baca dulu soal & instruksi di atas sampai benar-benar paham. Begitu kamu mulai
+            rekam, sesi ini dianggap terpakai — sesi Speaking jumlahnya terbatas, jadi jangan
+            sampai kepencet tidak sengaja.
+          </p>
+          <button
+            onClick={() => setReadyToRecord(true)}
+            className="flex items-center justify-center gap-2 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 font-medium transition w-fit"
+          >
+            <Mic size={16} /> Saya Sudah Siap, Mulai Rekam
+          </button>
+        </div>
+      ) : (
+        <AudioRecorder onTranscript={handleTranscript} disabled={loadingFeedback} />
+      )}
 
       {transcript && (
         <div className="rounded-xl border border-neutral-200 p-4">
