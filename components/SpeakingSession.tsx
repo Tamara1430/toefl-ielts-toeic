@@ -28,11 +28,19 @@ export default function SpeakingSession({
   difficulty,
   task,
   questionId,
+  skipHistory,
+  onScored,
 }: {
   exam: ExamType;
   difficulty: Difficulty;
   task: SpeakingTask;
   questionId?: string | null;
+  /** Skip logging to practice_sessions — used by Ujian mode, which records
+   * its own exam_attempts row instead via a separate endpoint. */
+  skipHistory?: boolean;
+  /** Called with the 0-100 score once feedback comes back — used by Ujian
+   * mode to collect scores across multiple speaking tasks in one session. */
+  onScored?: (score: number) => void;
 }) {
   const [transcript, setTranscript] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
@@ -59,15 +67,18 @@ export default function SpeakingSession({
       if (!res.ok) throw new Error(json.error || "Gagal menilai jawaban.");
       const data = json.data as Feedback;
       setFeedback(data);
-      recordSession({
-        exam,
-        section: "speaking",
-        difficulty,
-        questionId: questionId ?? undefined,
-        title: task.title,
-        speakingScore: data.score,
-        speakingScale: data.scoreScaleNote,
-      });
+      if (!skipHistory) {
+        recordSession({
+          exam,
+          section: "speaking",
+          difficulty,
+          questionId: questionId ?? undefined,
+          title: task.title,
+          speakingScore: data.score,
+          speakingScale: data.scoreScaleNote,
+        });
+      }
+      onScored?.(data.score);
     } catch (e: any) {
       setError(e.message);
     } finally {

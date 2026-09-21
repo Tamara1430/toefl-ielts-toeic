@@ -1,0 +1,296 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ExamType, EXAM_LABELS } from "@/lib/examConfig";
+import McqQuestions, { McqQuestion } from "@/components/McqQuestions";
+import DialoguePlayer from "@/components/DialoguePlayer";
+import SpeakingSession, { SpeakingTask } from "@/components/SpeakingSession";
+import { Loader2, FileWarning, ArrowRight } from "lucide-react";
+
+interface ReadingItem {
+  id: string;
+  payload: { title: string; passage: string; questions: McqQuestion[] };
+}
+interface ListeningItem {
+  id: string;
+  payload: {
+    title: string;
+    turns: { speaker: string; gender?: "male" | "female"; text: string; audioUrl?: string }[];
+    questions: McqQuestion[];
+  };
+}
+interface SpeakingItem {
+  id: string;
+  payload: SpeakingTask;
+}
+
+interface SessionData {
+  exam: ExamType;
+  period: string;
+  reading: ReadingItem[];
+  listening: ListeningItem[];
+  speaking: SpeakingItem[];
+}
+
+type StepKind = "reading" | "listening" | "speaking";
+interface Step {
+  kind: StepKind;
+  index: number; // index within that section's array
+}
+
+export default function UjianSession({ exam }: { exam: ExamType }) {
+  const router = useRouter();
+  const [session, setSession] = useState<SessionData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [notReadyMessage, setNotReadyMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [stepIndex, setStepIndex] = useState(0);
+  const [readingResults, setReadingResults] = useState<{ correct: number; total: number }[]>([]);
+  const [listeningResults, setListeningResults] = useState<{ correct: number; total: number }[]>([]);
+  const [speakingScores, setSpeakingScores] = useState<number[]>([]);
+
+  useEffect(() => {
+    async function start() {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/ujian/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exam }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || "Gagal memulai ujian.");
+        if (json.notReady) {
+          setNotReadyMessage(json.message);
+          return;
+        }
+        setSession(json);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+    start();
+  }, [exam]);
+
+  const steps: Step[] = session
+    ? [
+        ...session.reading.map((_, i) => ({ kind: "reading" as const, index: i })),
+        ...session.listening.map((_, i) => ({ kind: "listening" as const, index: i })),
+        ...session.speaking.map((_, i) => ({ kind: "speaking" as const, index: i })),
+      ]
+    : [];
+
+  const currentStep = steps[stepIndex];
+  const isLastStep = stepIndex === steps.length - 1;
+  const totalSteps = steps.length;
+
+  async function handleSubmitAll(
+    finalReading: typeof readingResults,
+    finalListening: typeof listeningResults,
+    finalSpeaking: typeof speakingScores
+  ) {
+    if (!session) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/ujian/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          exam: session.exam,
+          period: session.period,
+          readingResults: finalReading,
+          listeningResults: finalListening,
+          speakingScores: finalSpeaking,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal menyimpan hasil ujian.");
+      router.push(`/ujian/${exam}/sertifikat/${json.attemptId}`);
+    } catch (e: any) {
+      setError(e.message);
+      setSubmitting(false);
+    }
+  }
+
+  function goNext() {
+    if (isLastStep) return; // handled by per-type completion callbacks below
+    setStepIndex((i) => i + 1);
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-neutral-400 text-sm py-12 justify-center">
+        <Loader2 size={18} className="animate-spin" /> Menyiapkan sesi ujian...
+      </div>
+    );
+  }
+
+  if (notReadyMessage) {
+    return (
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
+        <FileWarning className="mx-auto text-amber-500 mb-3" size={32} />
+        <h3 className="font-semibold text-neutral-900 mb-1">Ujian belum siap</h3>
+        <p className="text-sm text-neutral-600">{notReadyMessage}</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>;
+  }
+
+  if (submitting) {
+    return (
+      <div className="flex items-center gap-2 text-neutral-400 text-sm py-12 justify-center">
+        <Loader2 size={18} className="animate-spin" /> Menghitung hasil & membuat sertifikat...
+      </div>
+    );
+  }
+
+  if (!session || !currentStep) return null;
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-sm text-neutral-500">
+          {EXAM_LABELS[exam]} — Langkah {stepIndex + 1} dari {totalSteps}
+        </p>
+        <div className="w-32 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-indigo-600 rounded-full transition-all"
+            style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
+          />
+        </div>
+      </div>
+
+      {currentStep.kind === "reading" && (
+        <ReadingStep
+          key={`r-${currentStep.index}`}
+          item={session.reading[currentStep.index]}
+          isLast={isLastStep}
+          onDone={(correct, total) => {
+            const next = [...readingResults, { correct, total }];
+            setReadingResults(next);
+            if (isLastStep) handleSubmitAll(next, listeningResults, speakingScores);
+            else goNext();
+          }}
+        />
+      )}
+
+      {currentStep.kind === "listening" && (
+        <ListeningStep
+          key={`l-${currentStep.index}`}
+          item={session.listening[currentStep.index]}
+          isLast={isLastStep}
+          onDone={(correct, total) => {
+            const next = [...listeningResults, { correct, total }];
+            setListeningResults(next);
+            if (isLastStep) handleSubmitAll(readingResults, next, speakingScores);
+            else goNext();
+          }}
+        />
+      )}
+
+      {currentStep.kind === "speaking" && (
+        <div>
+          <h2 className="text-xl font-semibold mb-3">
+            {session.speaking[currentStep.index].payload.title}
+          </h2>
+          <SpeakingSession
+            exam={exam}
+            difficulty="advanced"
+            task={session.speaking[currentStep.index].payload}
+            questionId={session.speaking[currentStep.index].id}
+            skipHistory
+            onScored={(score) => {
+              const next = [...speakingScores, score];
+              setSpeakingScores(next);
+            }}
+          />
+          {speakingScores.length === currentStep.index + 1 && (
+            <button
+              onClick={() => {
+                if (isLastStep) handleSubmitAll(readingResults, listeningResults, speakingScores);
+                else goNext();
+              }}
+              className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
+            >
+              {isLastStep ? "Selesai & Lihat Sertifikat" : "Lanjut"} <ArrowRight size={16} />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ReadingStep({
+  item,
+  isLast,
+  onDone,
+}: {
+  item: ReadingItem;
+  isLast: boolean;
+  onDone: (correct: number, total: number) => void;
+}) {
+  const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
+  return (
+    <div>
+      <h2 className="text-xl font-semibold mb-3">{item.payload.title}</h2>
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 leading-relaxed whitespace-pre-wrap mb-2">
+        {item.payload.passage}
+      </div>
+      <McqQuestions
+        questions={item.payload.questions}
+        onComplete={(correct, total) => setResult({ correct, total })}
+      />
+      {result && (
+        <button
+          onClick={() => onDone(result.correct, result.total)}
+          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
+        >
+          {isLast ? "Lanjut" : "Lanjut ke Soal Berikutnya"} <ArrowRight size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ListeningStep({
+  item,
+  isLast,
+  onDone,
+}: {
+  item: ListeningItem;
+  isLast: boolean;
+  onDone: (correct: number, total: number) => void;
+}) {
+  const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
+  return (
+    <div>
+      <h2 className="text-xl font-semibold mb-3">{item.payload.title}</h2>
+      <div className="rounded-xl border border-neutral-200 bg-white p-4 mb-2">
+        <DialoguePlayer turns={item.payload.turns} />
+      </div>
+      <McqQuestions
+        questions={item.payload.questions}
+        onComplete={(correct, total) => setResult({ correct, total })}
+      />
+      {result && (
+        <button
+          onClick={() => onDone(result.correct, result.total)}
+          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
+        >
+          {isLast ? "Lanjut" : "Lanjut ke Soal Berikutnya"} <ArrowRight size={16} />
+        </button>
+      )}
+    </div>
+  );
+}

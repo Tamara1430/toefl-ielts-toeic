@@ -92,7 +92,8 @@ Return ONLY valid JSON (no markdown fences, no commentary) matching this exact s
 export async function generateAndStoreQuestion(
   exam: ExamType,
   section: SectionType,
-  difficulty: Difficulty
+  difficulty: Difficulty,
+  options?: { pool?: "practice" | "exam"; examPeriod?: string }
 ) {
   const groq = getGroqClient();
   const prompt = buildPrompt(exam, section, difficulty);
@@ -117,7 +118,14 @@ export async function generateAndStoreQuestion(
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("questions")
-    .insert({ exam, section, difficulty, payload })
+    .insert({
+      exam,
+      section,
+      difficulty,
+      payload,
+      pool: options?.pool ?? "practice",
+      exam_period: options?.examPeriod ?? null,
+    })
     .select("id")
     .single();
 

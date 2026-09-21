@@ -150,6 +150,11 @@ export default function AdminStockPage() {
     null
   );
   const [genderErrors, setGenderErrors] = useState<string[]>([]);
+
+  // Exam pool (Ujian mode, monthly rotation)
+  const [generatingExamPool, setGeneratingExamPool] = useState(false);
+  const [examPoolResult, setExamPoolResult] = useState<string | null>(null);
+  const [examPoolError, setExamPoolError] = useState<string | null>(null);
   const [genderCountLoading, setGenderCountLoading] = useState(true);
 
   async function loadStock() {
@@ -327,6 +332,22 @@ export default function AdminStockPage() {
       setError(e.message);
     } finally {
       setFixingGender(false);
+    }
+  }
+
+  async function handleGenerateExamPool() {
+    setGeneratingExamPool(true);
+    setExamPoolError(null);
+    setExamPoolResult(null);
+    try {
+      const res = await fetch("/api/admin/generate-exam-pool", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal generate pool ujian.");
+      setExamPoolResult(`${json.totalGenerated} soal ujian baru ditambahkan untuk bulan ini.`);
+    } catch (e: any) {
+      setExamPoolError(e.message);
+    } finally {
+      setGeneratingExamPool(false);
     }
   }
 
@@ -683,6 +704,34 @@ export default function AdminStockPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Exam Pool (Ujian mode) */}
+      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="font-medium text-neutral-900 text-sm">Pool Soal Ujian (Bulanan)</h3>
+            <p className="text-xs text-neutral-400 mt-1 max-w-md">
+              Generate/lengkapi soal tingkat Mahir untuk mode Ujian bulan ini. Ini juga jalan
+              otomatis tiap bulan lewat cron — tombol ini buat trigger manual (misal pool
+              bulan ini belum sempat ter-generate).
+            </p>
+          </div>
+          <button
+            onClick={handleGenerateExamPool}
+            disabled={generatingExamPool}
+            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
+          >
+            {generatingExamPool ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Sparkles size={14} />
+            )}
+            {generatingExamPool ? "Generating..." : "Generate Pool Ujian"}
+          </button>
+        </div>
+        {examPoolResult && <p className="text-xs text-green-700 mt-3">{examPoolResult}</p>}
+        {examPoolError && <p className="text-xs text-red-600 mt-3">{examPoolError}</p>}
       </div>
     </div>
   );

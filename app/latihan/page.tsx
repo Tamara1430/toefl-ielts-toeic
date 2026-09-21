@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { EXAM_LABELS, ExamType } from "@/lib/examConfig";
-import { BookOpenText, Headphones, Mic, ChevronRight } from "lucide-react";
+import { BookOpenText, Headphones, Mic, ChevronRight, Award } from "lucide-react";
 
 const exams: ExamType[] = ["toefl", "ielts", "toeic"];
 
@@ -28,32 +28,39 @@ export default function LatihanPage() {
 
         <div className="flex flex-col gap-4">
           {exams.map((exam) => (
-            <Link
+            <div
               key={exam}
-              href={`/exam/${exam}`}
-              className="group rounded-2xl border border-neutral-200 bg-white p-5 hover:border-indigo-400 hover:shadow-md transition flex items-center gap-4"
+              className="group rounded-2xl border border-neutral-200 bg-white p-5 hover:border-indigo-400 hover:shadow-md transition"
             >
-              <div className="flex-1">
-                <h2 className="text-lg font-semibold text-neutral-900 group-hover:text-indigo-600">
-                  {EXAM_LABELS[exam]}
-                </h2>
-                <p className="text-sm text-neutral-500 mt-0.5">{descriptions[exam]}</p>
-                <div className="flex gap-3 text-neutral-400 mt-3">
-                  <BookOpenText size={16} />
-                  <Headphones size={16} />
-                  <Mic size={16} />
+              <Link href={`/exam/${exam}`} className="flex items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-neutral-900 group-hover:text-indigo-600">
+                    {EXAM_LABELS[exam]}
+                  </h2>
+                  <p className="text-sm text-neutral-500 mt-0.5">{descriptions[exam]}</p>
+                  <div className="flex gap-3 text-neutral-400 mt-3">
+                    <BookOpenText size={16} />
+                    <Headphones size={16} />
+                    <Mic size={16} />
+                  </div>
                 </div>
-              </div>
-              <ChevronRight
-                size={20}
-                className="text-neutral-300 group-hover:text-indigo-500 transition shrink-0"
-              />
-            </Link>
+                <ChevronRight
+                  size={20}
+                  className="text-neutral-300 group-hover:text-indigo-500 transition shrink-0"
+                />
+              </Link>
+              <Link
+                href={`/ujian/${exam}`}
+                className="inline-flex items-center gap-1.5 text-xs text-neutral-400 hover:text-indigo-600 mt-3 pt-3 border-t border-neutral-100 transition"
+              >
+                <Award size={13} /> Sudah siap? Coba Ujian {EXAM_LABELS[exam]} & dapatkan sertifikat
+              </Link>
+            </div>
           ))}
         </div>
 
         <p className="text-center text-xs text-neutral-400 mt-10">
-          Ditenagai oleh Groq API (gpt-oss-120b, Whisper, Orpheus TTS)
+          Ditenagai oleh Groq API (gpt-oss-120b, Whisper, Orpheus TTS + Edge TTS fallback)
         </p>
       </div>
     </main>

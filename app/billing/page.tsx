@@ -5,7 +5,7 @@ import { Check, Sparkles } from "lucide-react";
 
 // GANTI dengan nomor WhatsApp bisnis kamu sendiri sebelum deploy ke production!
 // Format: kode negara tanpa "+" atau "0" di depan, contoh Indonesia: 62812xxxxxxx
-const WHATSAPP_NUMBER = "6281234567890";
+const WHATSAPP_NUMBER = "6285778435598";
 
 function waLink(packageName: string) {
   const text = encodeURIComponent(`Halo, saya tertarik paket ${packageName}.`);

@@ -61,6 +61,7 @@ Semua ini otomatis aman dari ke-commit ke Git karena `.gitignore` sudah meng-ign
    - Kalau kamu sudah pernah menjalankan `jobs.sql` versi lama (sebelum ada live progress), jalankan juga `supabase/jobs-update.sql` sekali untuk menambahkan kolom yang kurang.
 5. Buka **SQL Editor** lagi → paste isi `supabase/entitlements.sql` → **Run**. Ini nambah kolom `entitlements` (akses berbayar per-exam: Free/Ujian/Premium) ke tabel profiles.
 6. Buka **SQL Editor** lagi → paste isi `supabase/auto-activate.sql` → **Run**. Ini bikin akun baru langsung aktif otomatis (sekarang ada free tier, jadi tidak semua fitur butuh verifikasi bayar dulu — `is_active` sekarang murni jadi saklar admin buat blokir akun kalau perlu).
+7. Buka **SQL Editor** lagi → paste isi `supabase/exam-mode.sql` → **Run**. Ini bikin tabel & kolom yang dipakai mode Ujian (pool soal terpisah + tabel hasil ujian).
 3. Buka **Authentication → Users → Add user**. Buat akun pertamamu (email + password) — ini akan jadi admin.
 4. Balik ke **SQL Editor**, jalankan (ganti email-nya):
    ```sql
@@ -115,6 +116,27 @@ Catat URL production-nya (misal `https://exam-ai-app.vercel.app`).
    ```
 
 Defaultnya jadwal **tiap jam** (`0 * * * *`). Bisa diubah ke tiap 3 jam (`0 */3 * * *`) dkk kalau mau makin hemat — edit lalu `select cron.unschedule('top-up-question-bank');` dulu sebelum jadwal ulang dengan skedul baru.
+
+**Opsional tapi disarankan**: jadwalkan juga pool soal Ujian bulanan, query serupa tapi ganti URL endpoint-nya jadi `/api/cron/generate-exam-pool` dan skedul jadi `'0 0 1 * *'` (tiap tanggal 1 jam 00:00):
+
+```sql
+select cron.schedule(
+  'top-up-exam-pool',
+  '0 0 1 * *',
+  $$
+  select net.http_post(
+    url := '<URL-VERCEL-KAMU>/api/cron/generate-exam-pool',
+    headers := jsonb_build_object(
+      'Content-Type', 'application/json',
+      'Authorization', 'Bearer <CRON_SECRET>'
+    ),
+    body := '{}'::jsonb
+  );
+  $$
+);
+```
+
+Atau kalau males nunggu tanggal 1, cukup pakai tombol **"Generate Pool Ujian"** di `/admin` kapan saja.
 
 ## 5. Tambah User Berbayar
 
@@ -219,6 +241,10 @@ app/
   login/page.tsx                → halaman login
   pending/page.tsx              → tampil kalau akun belum diaktifkan admin
   latihan/page.tsx               → menu pilih exam
+  signup/page.tsx                 → pendaftaran mandiri (free tier)
+  billing/page.tsx                → halaman paket & harga, link WhatsApp
+  ujian/[exam]/page.tsx            → entry mode Ujian (gerbang entitlement)
+  ujian/[exam]/sertifikat/[attemptId]/page.tsx → halaman sertifikat hasil
   progress/page.tsx              → progress gabungan lintas exam
   admin/                         → admin panel: stok soal, generate umum/spesifik/voices, kelola user
   exam/[exam]/ExamPractice.tsx   → UI latihan, ambil soal dari bank + UI "stok habis"
@@ -241,6 +267,8 @@ lib/
   shuffleQuestion.ts             → acak urutan pilihan jawaban MCQ
   entitlements.ts                 → definisi tier akses (free/ujian/premium) & daftar paket
   practiceQuestions.ts             → subset soal fixed untuk free tier (anti multi-akun)
+  examPool.ts                      → generate/top-up pool soal Ujian bulanan
+  scoreConversion.ts               → konversi persentase ke skala skor TOEFL/IELTS/TOEIC
   history.ts                     → baca/tulis riwayat sesi (sekarang dari Supabase)
   gamification.ts                → hitung streak, XP/level, badge
   examConfig.ts, groqClient.ts   → konfigurasi exam & Groq (sama seperti sebelumnya)
@@ -309,16 +337,36 @@ Ganti dengan nomor WhatsApp bisnis kamu (format: kode negara tanpa `+` atau `0` 
 
 **Latihan tidak lagi minta pilih tingkat kesulitan** — user tinggal klik "Ambil Soal", sistem otomatis ambil dari campuran semua tingkat kesulitan (untuk Premium) atau dari 10 soal fixed (untuk Free). Field kesulitan soal yang terpilih tetap dicatat di riwayat/progress secara otomatis di belakang layar, cuma tidak lagi jadi pilihan manual di UI.
 
-### Pertanyaan terbuka yang perlu kamu putuskan
+## Pendaftaran Mandiri
 
-Karena sekarang ada tingkatan Free yang bisa dipakai tanpa pembayaran, muncul pertanyaan: **apakah kamu mau buka pendaftaran publik** (orang bisa daftar sendiri buat coba free tier), **atau tetap semua akun dibuat manual oleh admin** seperti sekarang (termasuk akun free)? Saat ini masih **tanpa pendaftaran publik** — semua akun (free maupun berbayar) tetap harus kamu buatkan manual lewat `/admin/users`. Kalau kamu mau ada pendaftaran mandiri untuk free tier (supaya orang bisa coba sendiri tanpa nunggu kamu), itu perlu dibangun terpisah — kabari saya kalau mau saya lanjutkan.
+Sekarang ada halaman `/signup` — siapa pun bisa daftar sendiri (email + password) tanpa perlu admin buatkan akun manual. Akun baru otomatis masuk **Free tier** (lihat bagian di atas). Admin cuma perlu turun tangan kalau user mau **upgrade** ke paket berbayar (verifikasi pembayaran manual via WhatsApp, lalu atur entitlement di `/admin/users`).
 
-## Mode Ujian & Sertifikat (belum dibangun di update ini)
+**Cek 1 pengaturan di Supabase**: buka **Authentication → Providers → Email**, cek opsi "Confirm email":
+- **Aktif (default Supabase)** → user perlu klik link konfirmasi di email sebelum bisa login. Halaman signup sudah menangani ini (tampil pesan "cek email kamu").
+- **Nonaktif** → user langsung login begitu daftar, tanpa email konfirmasi. Lebih mulus buat onboarding tapi lebih rawan email palsu.
 
-Ini bagian yang **belum** saya bangun — akan menyusul di update berikutnya:
-- Sesi Ujian penuh (kumpulan soal tingkat Mahir yang diambil sekaligus dalam 1 sesi, bukan satu-satu seperti Latihan)
-- Bank soal Ujian terpisah dari bank Latihan, diganti/di-refresh tiap bulan
-- Halaman sertifikat hasil dengan format skor ala TOEFL (0-120) / IELTS (band 0-9) / TOEIC (10-990) — perlu dicatat ini **skor estimasi/simulasi**, bukan skor resmi dari lembaga TOEFL/IELTS/TOEIC asli, jadi labelnya harus jelas bilang "hasil latihan", bukan "sertifikat resmi", supaya tidak menyesatkan user
+Pilih sesuai preferensimu — tidak perlu ubah kode apa pun, ini murni toggle di Supabase Dashboard.
+
+## Mode Ujian & Sertifikat
+
+**Beda dari Latihan**: Ujian pakai bank soal **terpisah**, khusus tingkat **Mahir**, yang di-refresh **sebulan sekali** (bukan terus bertambah tiap hari seperti bank Latihan). Satu sesi Ujian = 2 soal Reading + 2 Listening + 2 Speaking, dikerjakan berurutan (begitu lanjut, tidak bisa balik ke soal sebelumnya — meniru suasana ujian beneran).
+
+**Alur teknis:**
+1. `POST /api/ujian/start` — cek entitlement user untuk exam itu (harus "Ujian" atau "Premium"), ambil 2+2+2 soal acak dari pool bulan berjalan (`exam_period`, format `YYYY-MM`)
+2. Komponen `UjianSession.tsx` menuntun user lewat semua soal secara berurutan, mengumpulkan skor tiap section
+3. `POST /api/ujian/complete` — hitung skor komposit, konversi ke skala resmi (lihat di bawah), simpan ke tabel `exam_attempts`
+4. Redirect ke `/ujian/[exam]/sertifikat/[attemptId]` — halaman sertifikat
+
+**Konversi skor** (`lib/scoreConversion.ts`) — persentase benar diubah ke skala mirip skor asli:
+- TOEFL: tiap section 0-30 (Reading/Listening/Speaking), total /90 (Writing tidak diujikan di versi ini)
+- IELTS: band 0-9 per section (kelipatan 0.5), overall rata-rata
+- TOEIC: Listening & Reading masing-masing 5-495 (total 10-990), Speaking 0-200
+
+⚠️ **Penting**: skor ini **estimasi dari simulasi latihan**, BUKAN skor resmi dari ETS/IDP/British Council. Ini ditulis eksplisit di label exam (selalu ada embel-embel "(Simulasi)") dan di catatan kaki sertifikat — supaya tidak ada yang salah kira ini sertifikat resmi.
+
+**Pool soal Ujian butuh digenerate dulu** sebelum ada yang bisa ambil ujian:
+- **Otomatis**: cron bulanan (perlu kamu setup manual, mirip `cron.sql` untuk Latihan — lihat `supabase/exam-mode.sql` dan endpoint `/api/cron/generate-exam-pool`, jadwalkan pakai `cron.schedule` dengan skedul `'0 0 1 * *'` = tiap tanggal 1 jam 00:00)
+- **Manual**: tombol **"Generate Pool Ujian"** di `/admin` — pakai ini pertama kali setelah deploy, supaya tidak perlu nunggu tanggal 1 bulan depan buat coba fitur Ujian
 
 ## Pengembangan Lanjutan (belum termasuk di v1 ini)
 
