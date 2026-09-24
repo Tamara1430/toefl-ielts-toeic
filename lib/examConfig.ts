@@ -14,6 +14,33 @@ export const SECTION_LABELS: Record<SectionType, string> = {
   speaking: "Speaking (Speech-to-Text)",
 };
 
+/**
+ * How many question-items (records) Ujian pulls per section, per exam —
+ * sized so one Ujian session's TOTAL sub-question count approximates the
+ * real test:
+ *
+ * - reading record = 1 passage with 5 sub-questions
+ * - listening record = 1 dialogue/monologue with 4 sub-questions
+ * - speaking record = 1 task (no sub-questions)
+ *
+ *              real test totals (approx.)         → records here
+ * TOEFL iBT:   Reading ~20, Listening ~28, Speaking 4 tasks
+ *              → reading 4, listening 7, speaking 4
+ * IELTS Acad.: Reading 40, Listening 40, Speaking 3 parts
+ *              → reading 8, listening 10, speaking 3
+ * TOEIC:       Reading 100, Listening 100, Speaking 11 tasks
+ *              → reading 20, listening 25, speaking 11
+ *
+ * These are targets, not hard requirements — Ujian fills up to the target
+ * with whatever advanced-difficulty questions exist in the bank and never
+ * blocks the user just because the bank has fewer than the target.
+ */
+export const UJIAN_SECTION_TARGETS: Record<ExamType, Record<SectionType, number>> = {
+  toefl: { reading: 4, listening: 7, speaking: 4 },
+  ielts: { reading: 8, listening: 10, speaking: 3 },
+  toeic: { reading: 20, listening: 25, speaking: 11 },
+};
+
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {
   beginner: "Pemula",
   intermediate: "Menengah",

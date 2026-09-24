@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Dumbbell, BarChart3, ShieldCheck } from "lucide-react";
+import { Home, Dumbbell, BarChart3, ShieldCheck, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const baseTabs = [
@@ -19,6 +19,12 @@ const baseTabs = [
     label: "Progress",
     icon: BarChart3,
     match: (p: string) => p.startsWith("/progress"),
+  },
+  {
+    href: "/profil",
+    label: "Profil",
+    icon: User,
+    match: (p: string) => p.startsWith("/profil"),
   },
 ];
 
