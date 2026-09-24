@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getGroqClient } from "@/lib/groqClient";
 import { ExamType, examContext, GROQ_TEXT_MODEL } from "@/lib/examConfig";
 import { withGroqUsage } from "@/lib/groqUsage";
+import { withGroqRetry } from "@/lib/groqRetry";
 
 export const runtime = "nodejs";
 
@@ -40,26 +41,42 @@ Return JSON with schema:
   "correctedSample": string (a short improved version of an ideal answer, 2-4 sentences)
 }`;
 
-    const completion = await withGroqUsage(
-      GROQ_TEXT_MODEL,
-      groq.chat.completions.create({
-        model: GROQ_TEXT_MODEL,
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: user },
-        ],
-        temperature: 0.5,
-        response_format: { type: "json_object" },
-      })
+    const completion = await withGroqRetry(() =>
+      withGroqUsage(
+        GROQ_TEXT_MODEL,
+        groq.chat.completions.create({
+          model: GROQ_TEXT_MODEL,
+          messages: [
+            { role: "system", content: sys },
+            { role: "user", content: user },
+          ],
+          temperature: 0.5,
+          // GPT-OSS is a reasoning model — by default it burns a lot of
+          // hidden "thinking" tokens before answering, which is what was
+          // eating our 8K-tokens/minute free-tier budget so fast. This is
+          // a simple grading task, not a hard reasoning problem, so "low"
+          // is plenty and cuts token usage per call dramatically.
+          reasoning_effort: "low",
+          // Keep the JSON answer itself capped too, since we only need a
+          // short structured response.
+          max_completion_tokens: 700,
+          response_format: { type: "json_object" },
+        })
+      )
     );
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     return NextResponse.json({ data: JSON.parse(raw) });
   } catch (err: any) {
     console.error("feedback error:", err);
+    const isRateLimit = err?.status === 429;
     return NextResponse.json(
-      { error: err?.message ?? "Gagal menilai jawaban." },
-      { status: 500 }
+      {
+        error: isRateLimit
+          ? "Server AI lagi sibuk (banyak yang latihan bareng). Coba lagi dalam beberapa detik, ya."
+          : err?.message ?? "Gagal menilai jawaban.",
+      },
+      { status: isRateLimit ? 429 : 500 }
     );
   }
 }
