@@ -7,7 +7,7 @@ import { Home, Dumbbell, BarChart3, ShieldCheck, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const baseTabs = [
-  { href: "/", label: "Beranda", icon: Home, match: (p: string) => p === "/" },
+  { href: "/dashboard", label: "Beranda", icon: Home, match: (p: string) => p === "/dashboard" },
   {
     href: "/latihan",
     label: "Latihan",
@@ -52,8 +52,8 @@ export default function BottomNav() {
     });
   }, [pathname]);
 
-  // Don't show the nav bar at all on the login page.
-  if (pathname === "/login") return null;
+  // Don't show the nav bar on the public landing/auth pages.
+  if (pathname === "/" || pathname === "/login" || pathname === "/signup") return null;
 
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 

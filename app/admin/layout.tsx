@@ -19,7 +19,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex items-center justify-between mb-1">
           <h1 className="text-2xl font-bold text-neutral-900">Admin Panel</h1>
           <div className="flex items-center gap-3">
-            <Link href="/" className="text-neutral-400 hover:text-neutral-700">
+            <Link href="/dashboard" className="text-neutral-400 hover:text-neutral-700">
               <Home size={18} />
             </Link>
             <LogoutButton />

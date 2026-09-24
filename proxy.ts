@@ -2,6 +2,11 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 const PUBLIC_PATHS = ["/login", "/signup"];
+// Landing page: public, but only when it's the exact root ("/") — everything
+// else that starts with "/" would otherwise match every path.
+function isLandingPage(pathname: string) {
+  return pathname === "/";
+}
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -35,7 +40,7 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p)) || isLandingPage(pathname);
 
   // Not logged in and hitting a protected page → send to /login.
   if (!user && !isPublic && !pathname.startsWith("/api/")) {
@@ -44,10 +49,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Already logged in and visiting /login → send to dashboard.
-  if (user && (pathname === "/login" || pathname === "/signup")) {
+  // Already logged in and visiting the landing page, /login, or /signup →
+  // send straight to the dashboard instead of showing marketing/auth pages.
+  if (user && (isLandingPage(pathname) || pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 
@@ -68,7 +74,7 @@ export async function proxy(request: NextRequest) {
     // Non-admin trying to reach /admin/**.
     if (pathname.startsWith("/admin") && profile?.role !== "admin") {
       const url = request.nextUrl.clone();
-      url.pathname = "/";
+      url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
   }
