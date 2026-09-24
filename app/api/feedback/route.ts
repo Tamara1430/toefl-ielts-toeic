@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGroqClient } from "@/lib/groqClient";
 import { ExamType, examContext, GROQ_TEXT_MODEL } from "@/lib/examConfig";
+import { withGroqUsage } from "@/lib/groqUsage";
 
 export const runtime = "nodejs";
 
@@ -39,15 +40,18 @@ Return JSON with schema:
   "correctedSample": string (a short improved version of an ideal answer, 2-4 sentences)
 }`;
 
-    const completion = await groq.chat.completions.create({
-      model: GROQ_TEXT_MODEL,
-      messages: [
-        { role: "system", content: sys },
-        { role: "user", content: user },
-      ],
-      temperature: 0.5,
-      response_format: { type: "json_object" },
-    });
+    const completion = await withGroqUsage(
+      GROQ_TEXT_MODEL,
+      groq.chat.completions.create({
+        model: GROQ_TEXT_MODEL,
+        messages: [
+          { role: "system", content: sys },
+          { role: "user", content: user },
+        ],
+        temperature: 0.5,
+        response_format: { type: "json_object" },
+      })
+    );
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     return NextResponse.json({ data: JSON.parse(raw) });

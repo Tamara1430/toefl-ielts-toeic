@@ -199,11 +199,12 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
       )}
 
       {currentStep.kind === "speaking" && (
-        <div>
+        <div key={`s-${currentStep.index}`}>
           <h2 className="text-xl font-semibold mb-3">
             {session.speaking[currentStep.index].payload.title}
           </h2>
           <SpeakingSession
+            key={`s-${currentStep.index}`}
             exam={exam}
             difficulty="advanced"
             task={session.speaking[currentStep.index].payload}

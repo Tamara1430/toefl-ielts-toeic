@@ -1,4 +1,5 @@
 import { getGroqClient } from "@/lib/groqClient";
+import { withGroqUsage } from "@/lib/groqUsage";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateAndCacheListeningAudio } from "@/lib/audioGeneration";
 import { isJobCancelled, setJobProgress } from "@/lib/generationJobs";
@@ -98,19 +99,22 @@ export async function generateAndStoreQuestion(
   const groq = getGroqClient();
   const prompt = buildPrompt(exam, section, difficulty);
 
-  const completion = await groq.chat.completions.create({
-    model: GROQ_TEXT_MODEL,
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are a precise test-item generator. You always respond with strictly valid JSON only, matching the schema given by the user. Never wrap the JSON in markdown code fences.",
-      },
-      { role: "user", content: prompt },
-    ],
-    temperature: 0.9,
-    response_format: { type: "json_object" },
-  });
+  const completion = await withGroqUsage(
+    GROQ_TEXT_MODEL,
+    groq.chat.completions.create({
+      model: GROQ_TEXT_MODEL,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a precise test-item generator. You always respond with strictly valid JSON only, matching the schema given by the user. Never wrap the JSON in markdown code fences.",
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.9,
+      response_format: { type: "json_object" },
+    })
+  );
 
   const raw = completion.choices[0]?.message?.content ?? "{}";
   const payload = JSON.parse(raw);

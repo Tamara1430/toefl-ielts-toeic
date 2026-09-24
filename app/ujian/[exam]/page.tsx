@@ -3,7 +3,7 @@
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { ExamType, EXAM_LABELS } from "@/lib/examConfig";
+import { ExamType, EXAM_LABELS, UJIAN_SECTION_TARGETS } from "@/lib/examConfig";
 import { getEntitlement, canAccessUjian, Entitlements } from "@/lib/entitlements";
 import UjianSession from "@/components/UjianSession";
 import { ArrowLeft, Lock, FileCheck2, Loader2, AlertTriangle } from "lucide-react";
@@ -93,9 +93,13 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
             <FileCheck2 className="text-indigo-600 mb-3" size={28} />
             <h2 className="font-semibold text-neutral-900 mb-2">Sebelum mulai</h2>
             <ul className="text-sm text-neutral-600 flex flex-col gap-1.5 mb-4 list-disc list-inside">
-              <li>Terdiri dari 2 soal Reading, 2 Listening, dan 2 Speaking tingkat Mahir</li>
+              <li>
+                Terdiri dari {UJIAN_SECTION_TARGETS[exam].reading} soal Reading,{" "}
+                {UJIAN_SECTION_TARGETS[exam].listening} Listening, dan{" "}
+                {UJIAN_SECTION_TARGETS[exam].speaking} Speaking tingkat Mahir
+              </li>
               <li>Kerjakan berurutan — begitu lanjut, tidak bisa kembali ke soal sebelumnya</li>
-              <li>Soal ujian diganti tiap bulan, sama untuk semua peserta bulan ini</li>
+              <li>Soal diambil dari bank soal Mahir yang terus bertambah — bukan pool bulanan tetap</li>
               <li>Hasilnya langsung jadi sertifikat estimasi skor</li>
             </ul>
             <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex items-start gap-2 mb-4">

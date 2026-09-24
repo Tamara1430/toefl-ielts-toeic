@@ -25,20 +25,28 @@ export const SECTION_LABELS: Record<SectionType, string> = {
  *
  *              real test totals (approx.)         → records here
  * TOEFL iBT:   Reading ~20, Listening ~28, Speaking 4 tasks
- *              → reading 4, listening 7, speaking 4
+ *              → reading 4, listening 7, speaking capped at 2
  * IELTS Acad.: Reading 40, Listening 40, Speaking 3 parts
- *              → reading 8, listening 10, speaking 3
+ *              → reading 8, listening 10, speaking capped at 2
  * TOEIC:       Reading 100, Listening 100, Speaking 11 tasks
- *              → reading 20, listening 25, speaking 11
+ *              → reading 20, listening 25, speaking capped at 2
+ *
+ * Speaking is deliberately capped well below the "real test total" ratio
+ * used for Reading/Listening — each Speaking answer costs TWO live Groq
+ * calls (Whisper STT to transcribe + a chat completion to grade), unlike
+ * Reading/Listening which are graded locally against pre-generated
+ * questions. Letting Speaking scale up the same way Reading/Listening do
+ * would burn through the daily Groq quota fast, especially if several
+ * people sit Ujian around the same time.
  *
  * These are targets, not hard requirements — Ujian fills up to the target
  * with whatever advanced-difficulty questions exist in the bank and never
  * blocks the user just because the bank has fewer than the target.
  */
 export const UJIAN_SECTION_TARGETS: Record<ExamType, Record<SectionType, number>> = {
-  toefl: { reading: 4, listening: 7, speaking: 4 },
-  ielts: { reading: 8, listening: 10, speaking: 3 },
-  toeic: { reading: 20, listening: 25, speaking: 11 },
+  toefl: { reading: 4, listening: 7, speaking: 2 },
+  ielts: { reading: 8, listening: 10, speaking: 2 },
+  toeic: { reading: 20, listening: 25, speaking: 2 },
 };
 
 export const DIFFICULTY_LABELS: Record<Difficulty, string> = {

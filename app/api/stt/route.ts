@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGroqClient } from "@/lib/groqClient";
 import { GROQ_STT_MODEL } from "@/lib/examConfig";
+import { withGroqUsage } from "@/lib/groqUsage";
 
 export const runtime = "nodejs";
 
@@ -15,12 +16,15 @@ export async function POST(req: NextRequest) {
 
     const groq = getGroqClient();
 
-    const transcription = await groq.audio.transcriptions.create({
-      file,
-      model: GROQ_STT_MODEL,
-      response_format: "verbose_json",
-      language: "en",
-    });
+    const transcription = await withGroqUsage(
+      GROQ_STT_MODEL,
+      groq.audio.transcriptions.create({
+        file,
+        model: GROQ_STT_MODEL,
+        response_format: "verbose_json",
+        language: "en",
+      })
+    );
 
     return NextResponse.json({ text: transcription.text, raw: transcription });
   } catch (err: any) {

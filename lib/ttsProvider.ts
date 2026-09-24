@@ -1,5 +1,6 @@
 import { getGroqClient } from "@/lib/groqClient";
 import { GROQ_TTS_MODEL } from "@/lib/examConfig";
+import { recordGroqUsage } from "@/lib/groqUsage";
 import { EdgeTTS } from "edge-tts-universal";
 
 export interface TtsResult {
@@ -41,6 +42,9 @@ export async function synthesizeSpeech(
       input: text,
       response_format: "mp3",
     });
+    // This call already returns the raw fetch Response, so no need for
+    // `.withResponse()` here — its headers are already right there.
+    void recordGroqUsage(GROQ_TTS_MODEL, response.headers);
     const buffer = Buffer.from(await response.arrayBuffer());
     return { buffer, provider: "groq", contentType: "audio/mpeg", ext: "mp3" };
   } catch (groqError: any) {

@@ -8,6 +8,9 @@ import {
   ExamType,
   SectionType,
   Difficulty,
+  GROQ_TEXT_MODEL,
+  GROQ_STT_MODEL,
+  GROQ_TTS_MODEL,
 } from "@/lib/examConfig";
 import AdminQuestionList from "@/components/AdminQuestionList";
 import {
@@ -20,6 +23,8 @@ import {
   X,
   ChevronDown,
   Wand2,
+  Gauge,
+  Clock,
 } from "lucide-react";
 
 interface StockRow {
@@ -45,6 +50,152 @@ interface StepInfo {
 const exams: ExamType[] = ["toefl", "ielts", "toeic"];
 const sections: SectionType[] = ["reading", "listening", "speaking"];
 const difficulties: Difficulty[] = ["beginner", "intermediate", "advanced"];
+
+interface GroqUsageRow {
+  model: string;
+  limit_requests: number | null;
+  remaining_requests: number | null;
+  reset_requests: string | null;
+  limit_tokens: number | null;
+  remaining_tokens: number | null;
+  reset_tokens: string | null;
+  updated_at: string;
+}
+
+const GROQ_MODEL_LABELS: Record<string, string> = {
+  [GROQ_TEXT_MODEL]: "Teks — generate soal & nilai Speaking",
+  [GROQ_STT_MODEL]: "Speech-to-Text — transkrip jawaban Speaking",
+  [GROQ_TTS_MODEL]: "Text-to-Speech — audio Listening",
+};
+
+function timeAgo(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.round(diffMs / 60000);
+  if (mins < 1) return "baru saja";
+  if (mins < 60) return `${mins} menit lalu`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  return `${Math.round(hours / 24)} hari lalu`;
+}
+
+function UsageBar({
+  remaining,
+  limit,
+}: {
+  remaining: number | null;
+  limit: number | null;
+}) {
+  if (remaining === null || limit === null || limit === 0) {
+    return <span className="text-neutral-400">—</span>;
+  }
+  const pct = Math.max(0, Math.min(100, Math.round((remaining / limit) * 100)));
+  const color = pct <= 15 ? "bg-red-500" : pct <= 40 ? "bg-amber-500" : "bg-emerald-500";
+  return (
+    <div className="flex items-center gap-2">
+      <div className="w-24 h-1.5 rounded-full bg-neutral-100 overflow-hidden shrink-0">
+        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+      <span className="text-xs text-neutral-600 tabular-nums">
+        {remaining.toLocaleString("id-ID")} / {limit.toLocaleString("id-ID")}
+      </span>
+    </div>
+  );
+}
+
+function GroqUsageCard() {
+  const [rows, setRows] = useState<GroqUsageRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/groq-usage");
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Gagal memuat data kuota Groq.");
+      setRows(json.rows);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const knownModels = [GROQ_TEXT_MODEL, GROQ_STT_MODEL, GROQ_TTS_MODEL];
+  const byModel = new Map(rows.map((r) => [r.model, r]));
+
+  return (
+    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
+        <div className="flex items-center gap-1.5">
+          <Gauge size={15} className="text-indigo-600" />
+          <h3 className="font-medium text-neutral-900 text-sm">Sisa Kuota Groq</h3>
+        </div>
+        <button
+          onClick={load}
+          disabled={loading}
+          className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium hover:border-neutral-400 transition"
+        >
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
+        </button>
+      </div>
+      <p className="text-xs text-neutral-400 mb-3 max-w-lg">
+        Direkam otomatis dari request asli (feedback Speaking, transkrip STT, generate soal &amp;
+        suara) — bukan cek terpisah, jadi tidak menambah pemakaian kuota. Pakai ini buat jadwalin
+        kapan orang-orang boleh mulai Ujian bareng, biar tidak barengan kena limit.
+      </p>
+
+      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+
+      <div className="flex flex-col divide-y divide-neutral-100">
+        {knownModels.map((model) => {
+          const row = byModel.get(model);
+          return (
+            <div key={model} className="py-2.5 first:pt-0 last:pb-0">
+              <div className="flex items-center justify-between flex-wrap gap-1 mb-1.5">
+                <p className="text-sm font-medium text-neutral-800">
+                  {GROQ_MODEL_LABELS[model] ?? model}
+                </p>
+                {row && (
+                  <span className="flex items-center gap-1 text-xs text-neutral-400">
+                    <Clock size={11} /> {timeAgo(row.updated_at)}
+                  </span>
+                )}
+              </div>
+              {!row ? (
+                <p className="text-xs text-neutral-400">
+                  Belum ada data — belum ada request ke model ini sejak deploy terakhir.
+                </p>
+              ) : (
+                <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
+                  <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                    <span className="text-neutral-400 w-20 shrink-0">Requests</span>
+                    <UsageBar remaining={row.remaining_requests} limit={row.limit_requests} />
+                    {row.reset_requests && (
+                      <span className="text-neutral-400 ml-1">(reset {row.reset_requests})</span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between sm:justify-start sm:gap-2">
+                    <span className="text-neutral-400 w-20 shrink-0">Tokens</span>
+                    <UsageBar remaining={row.remaining_tokens} limit={row.limit_tokens} />
+                    {row.reset_tokens && (
+                      <span className="text-neutral-400 ml-1">(reset {row.reset_tokens})</span>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 async function createJob(kind: "questions" | "voices"): Promise<string> {
   const res = await fetch("/api/admin/jobs", {
@@ -374,6 +525,9 @@ export default function AdminStockPage() {
           {error}
         </p>
       )}
+
+      {/* Sisa Kuota Groq */}
+      <GroqUsageCard />
 
       {/* Stok */}
       <div>
