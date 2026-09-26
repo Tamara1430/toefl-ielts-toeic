@@ -37,7 +37,7 @@ export default function LatihanPage() {
             <div key={exam} className="card p-5" style={{ borderLeft: `3px solid ${examAccent[exam]}` }}>
               <Link href={`/exam/${exam}`} className="flex items-center gap-4 group">
                 <div className="flex-1">
-                  <h2 className="font-serif text-lg text-ink">{EXAM_LABELS[exam]}</h2>
+                  <h2 className="font-bold text-lg text-ink">{EXAM_LABELS[exam]}</h2>
                   <p className="text-sm text-ink-soft mt-0.5">{descriptions[exam]}</p>
                   <div className="flex gap-3 text-ink-faint mt-3">
                     <BookOpenText size={16} />

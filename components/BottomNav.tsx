@@ -52,13 +52,18 @@ export default function BottomNav() {
     });
   }, [pathname]);
 
-  // Don't show the nav bar on the public landing/auth pages.
-  if (pathname === "/" || pathname === "/login" || pathname === "/signup") return null;
+  // Don't show the nav bar on the public landing/auth pages, or during an
+  // active Ujian session — that flow gets its own dedicated top bar
+  // (UjianTopBar) instead, so the experience stays distraction-free.
+  const isUjianSession = /^\/ujian\/[^/]+$/.test(pathname);
+  if (pathname === "/" || pathname === "/login" || pathname === "/signup" || isUjianSession) {
+    return null;
+  }
 
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-rule pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-rule pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(17,24,39,0.04)]">
       <div
         className="max-w-3xl mx-auto grid"
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
@@ -69,17 +74,25 @@ export default function BottomNav() {
             <Link
               key={href}
               href={href}
-              className="relative flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors"
-              style={{ color: active ? "var(--ink)" : "var(--ink-faint)" }}
+              className="flex flex-col items-center gap-1 py-2.5 text-xs transition-colors"
             >
-              {active && (
-                <span
-                  className="absolute top-0 h-[2px] w-8 rounded-full"
-                  style={{ background: "var(--red)" }}
+              <span
+                className={`flex items-center justify-center w-11 h-7 rounded-full transition-colors ${
+                  active ? "bg-indigo-tint" : ""
+                }`}
+              >
+                <Icon
+                  size={19}
+                  strokeWidth={active ? 2.3 : 1.9}
+                  color={active ? "var(--indigo)" : "var(--ink-faint)"}
                 />
-              )}
-              <Icon size={21} strokeWidth={active ? 2.2 : 1.75} />
-              {label}
+              </span>
+              <span
+                className={active ? "font-semibold" : "font-medium"}
+                style={{ color: active ? "var(--indigo)" : "var(--ink-faint)" }}
+              >
+                {label}
+              </span>
             </Link>
           );
         })}

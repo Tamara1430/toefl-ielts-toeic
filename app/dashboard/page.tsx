@@ -88,7 +88,7 @@ export default function DashboardHomePage() {
         {isNewUser ? (
           <div className="card p-6 text-center mb-6" style={{ borderLeft: "3px solid var(--gold)" }}>
             <Sparkles className="mx-auto text-gold-ink mb-2" size={24} />
-            <h2 className="font-serif text-lg text-ink mb-1">Mulai perjalanan belajarmu</h2>
+            <h2 className="font-bold text-lg text-ink mb-1">Mulai perjalanan belajarmu</h2>
             <p className="text-sm text-ink-soft mb-5">
               Belum ada riwayat latihan. Kerjakan sesi pertamamu untuk mulai naik level.
             </p>
@@ -135,7 +135,7 @@ export default function DashboardHomePage() {
         {/* Continue practice */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif text-base text-ink">Lanjutkan latihan</h2>
+            <h2 className="font-bold text-base text-ink">Lanjutkan latihan</h2>
             <Link href="/latihan" className="text-xs text-ink-soft hover:text-ink font-medium">
               Lihat semua
             </Link>
@@ -163,7 +163,7 @@ export default function DashboardHomePage() {
         {/* Recent activity */}
         {recent.length > 0 && (
           <div className="mb-8">
-            <h2 className="font-serif text-base text-ink mb-3">Aktivitas terbaru</h2>
+            <h2 className="font-bold text-base text-ink mb-3">Aktivitas terbaru</h2>
             <div className="card divide-y divide-[var(--rule)]">
               {recent.map((r) => {
                 const s = scoreOf(r);
@@ -193,7 +193,7 @@ export default function DashboardHomePage() {
         {/* Achievements */}
         <div>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-serif text-base text-ink">Pencapaian</h2>
+            <h2 className="font-bold text-base text-ink">Pencapaian</h2>
             <span className="stat-num text-xs text-ink-soft">
               {unlockedBadges.length}/{badges.length}
             </span>

@@ -17,7 +17,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <main className="min-h-screen bg-paper pb-24">
       <div className="max-w-3xl mx-auto px-5 pt-8">
         <div className="flex items-center justify-between mb-1">
-          <h1 className="font-serif text-2xl text-ink">Admin Panel</h1>
+          <h1 className="font-bold text-2xl text-ink">Admin Panel</h1>
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="text-ink-faint hover:text-ink transition-colors">
               <Home size={18} />

@@ -6,7 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import { ExamType, EXAM_LABELS, UJIAN_SECTION_TARGETS } from "@/lib/examConfig";
 import { getEntitlement, canAccessUjian, Entitlements } from "@/lib/entitlements";
 import UjianSession from "@/components/UjianSession";
-import { ArrowLeft, Lock, FileCheck2, Loader2, AlertTriangle } from "lucide-react";
+import UjianTopBar from "@/components/UjianTopBar";
+import { Lock, FileCheck2, Loader2, AlertTriangle } from "lucide-react";
 
 const VALID_EXAMS: ExamType[] = ["toefl", "ielts", "toeic"];
 
@@ -48,15 +49,20 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
     check();
   }, [exam]);
 
+  // Once the session has actually started, UjianSession renders its own
+  // UjianTopBar (with live step progress) — so we don't render a second
+  // one here.
+  if (started) {
+    return (
+      <main className="min-h-screen bg-paper pb-10">
+        <UjianSession exam={exam} />
+      </main>
+    );
+  }
+
   return (
     <main className="min-h-screen bg-paper pb-24">
-      <div className="page-head !pb-4">
-        <Link href="/latihan" className="page-head__back">
-          <ArrowLeft size={15} /> Kembali ke Latihan
-        </Link>
-        <h1 className="page-head__title">Ujian {EXAM_LABELS[exam]}</h1>
-        <p className="page-head__desc">Simulasi ujian tingkat lanjut — hasilnya jadi sertifikat estimasi skor.</p>
-      </div>
+      <UjianTopBar examLabel={EXAM_LABELS[exam]} exitHref="/latihan" />
 
       <div className="container-page px-5 pt-6">
         {checking && (
@@ -66,9 +72,9 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
         )}
 
         {!checking && !eligible && (
-          <div className="card p-6 text-center" style={{ borderColor: "var(--gold)" }}>
+          <div className="card p-6 text-center">
             <Lock className="mx-auto text-gold-ink mb-3" size={28} />
-            <h3 className="font-serif text-lg text-ink mb-1">
+            <h3 className="text-lg font-bold text-ink mb-1">
               Ujian {EXAM_LABELS[exam]} adalah fitur berbayar
             </h3>
             <p className="text-sm text-ink-soft mb-4">
@@ -81,10 +87,10 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
           </div>
         )}
 
-        {!checking && eligible && !started && (
+        {!checking && eligible && (
           <div className="card p-6">
-            <FileCheck2 className="text-ink mb-3" size={26} />
-            <h2 className="font-serif text-lg text-ink mb-2">Sebelum mulai</h2>
+            <FileCheck2 className="text-indigo mb-3" size={26} />
+            <h2 className="text-lg font-bold text-ink mb-2">Sebelum mulai</h2>
             <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-4 list-disc list-inside">
               <li>
                 Terdiri dari {UJIAN_SECTION_TARGETS[exam].reading} soal Reading,{" "}
@@ -95,10 +101,7 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
               <li>Soal diambil dari bank soal Mahir yang terus bertambah — bukan pool bulanan tetap</li>
               <li>Hasilnya langsung jadi sertifikat estimasi skor</li>
             </ul>
-            <div
-              className="rounded-[7px] border p-3 flex items-start gap-2 mb-4"
-              style={{ background: "var(--gold-tint)", borderColor: "var(--gold)" }}
-            >
+            <div className="rounded-[10px] border border-transparent bg-gold-tint p-3 flex items-start gap-2 mb-4">
               <AlertTriangle size={16} className="text-gold-ink shrink-0 mt-0.5" />
               <p className="text-xs text-gold-ink">
                 Skor yang dihasilkan adalah <strong>estimasi dari simulasi latihan</strong>, bukan
@@ -110,8 +113,6 @@ function UjianPageInner({ exam }: { exam: ExamType }) {
             </button>
           </div>
         )}
-
-        {!checking && eligible && started && <UjianSession exam={exam} />}
       </div>
     </main>
   );

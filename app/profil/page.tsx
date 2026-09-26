@@ -177,7 +177,7 @@ export default function ProfilPage() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Package size={16} className="text-ink-soft" />
-              <h2 className="font-serif text-base text-ink">Paket kamu</h2>
+              <h2 className="font-bold text-base text-ink">Paket kamu</h2>
             </div>
             <Link
               href="/billing"
@@ -218,7 +218,7 @@ export default function ProfilPage() {
         <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
             <KeyRound size={16} className="text-ink-soft" />
-            <h2 className="font-serif text-base text-ink">Ganti password</h2>
+            <h2 className="font-bold text-base text-ink">Ganti password</h2>
           </div>
 
           <form onSubmit={handleChangePassword} className="flex flex-col gap-3">

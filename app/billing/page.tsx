@@ -27,7 +27,7 @@ export default function BillingPage() {
         {/* Free tier card (current, informational only) */}
         <div className="card p-5 mb-4">
           <p className="text-xs font-medium text-ink-faint mb-1">Paket saat ini</p>
-          <h2 className="font-serif text-lg text-ink mb-2">Free</h2>
+          <h2 className="font-bold text-lg text-ink mb-2">Free</h2>
           <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-2">
             <li className="flex items-center gap-2">
               <Check size={14} className="text-ink-faint shrink-0" /> 10 soal Reading per exam
@@ -56,7 +56,7 @@ export default function BillingPage() {
                   <Sparkles size={12} /> Paling direkomendasikan
                 </span>
               )}
-              <h2 className="font-serif text-lg text-ink">{pkg.name}</h2>
+              <h2 className="font-bold text-lg text-ink">{pkg.name}</h2>
               <div className="flex items-baseline gap-2 mt-1 mb-3">
                 {pkg.originalPriceLabel && (
                   <span className="text-sm text-ink-faint line-through">

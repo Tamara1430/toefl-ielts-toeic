@@ -47,7 +47,7 @@ export default function SignupPage() {
           <div className="w-12 h-12 rounded-[8px] bg-gold-tint border border-gold flex items-center justify-center mx-auto mb-4">
             <Mail size={22} className="text-gold-ink" />
           </div>
-          <h1 className="font-serif text-xl text-ink mb-2">Cek email kamu</h1>
+          <h1 className="font-bold text-xl text-ink mb-2">Cek email kamu</h1>
           <p className="text-ink-soft text-sm mb-6">
             Kami sudah kirim link konfirmasi ke <strong className="text-ink">{email}</strong>. Klik
             link itu untuk aktifkan akunmu, lalu login.
@@ -67,11 +67,11 @@ export default function SignupPage() {
           <div className="w-7 h-7 rounded-[4px] bg-ink flex items-center justify-center">
             <span className="text-surface text-xs font-mono font-semibold">EA</span>
           </div>
-          <span className="font-serif text-lg text-ink">Exam AI</span>
+          <span className="font-bold text-lg text-ink">Exam AI</span>
         </div>
 
         <div className="card p-7">
-          <h1 className="font-serif text-xl text-ink mb-1">Daftar gratis</h1>
+          <h1 className="font-bold text-xl text-ink mb-1">Daftar gratis</h1>
           <p className="text-sm text-ink-soft mb-6">
             Langsung coba latihan TOEFL, IELTS, TOEIC — tanpa kartu kredit.
           </p>

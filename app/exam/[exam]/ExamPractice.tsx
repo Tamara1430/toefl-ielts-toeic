@@ -148,7 +148,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
         {quotaExceeded && (
           <div className="card p-6 text-center" style={{ borderColor: "var(--gold)" }}>
             <Lock className="mx-auto text-gold-ink mb-3" size={28} />
-            <h3 className="font-serif text-lg text-ink mb-1">
+            <h3 className="font-bold text-lg text-ink mb-1">
               Kuota gratis {SECTION_LABELS[section].toLowerCase()} sudah habis
             </h3>
             <p className="text-sm text-ink-soft mb-4">
@@ -165,7 +165,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
         {audioPending && (
           <div className="card p-6 text-center">
             <Headphones className="mx-auto text-ink-soft mb-3" size={28} />
-            <h3 className="font-serif text-lg text-ink mb-1">Soal ada, tapi audionya belum siap</h3>
+            <h3 className="font-bold text-lg text-ink mb-1">Soal ada, tapi audionya belum siap</h3>
             <p className="text-sm text-ink-soft mb-1">
               Ada soal listening untuk {EXAM_LABELS[exam]} yang belum kamu kerjakan, tapi
               suaranya masih diproses admin.
@@ -177,7 +177,7 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
         {outOfStock && (
           <div className="card p-6 text-center">
             <PackageX className="mx-auto text-ink-soft mb-3" size={28} />
-            <h3 className="font-serif text-lg text-ink mb-1">Stok soal habis untuk ini</h3>
+            <h3 className="font-bold text-lg text-ink mb-1">Stok soal habis untuk ini</h3>
             <p className="text-sm text-ink-soft mb-1">
               Kamu sudah mengerjakan semua soal {SECTION_LABELS[section].toLowerCase()} yang
               tersedia untuk {EXAM_LABELS[exam]}.
@@ -237,7 +237,7 @@ function ReadingView({
 }) {
   return (
     <div>
-      <h2 className="font-serif text-lg text-ink mb-3">{data.title}</h2>
+      <h2 className="font-bold text-lg text-ink mb-3">{data.title}</h2>
       <div className="card p-4 leading-relaxed whitespace-pre-wrap text-[0.95rem]">
         {data.passage}
       </div>
@@ -272,7 +272,7 @@ function ListeningView({
 }) {
   return (
     <div>
-      <h2 className="font-serif text-lg text-ink mb-3">{data.title}</h2>
+      <h2 className="font-bold text-lg text-ink mb-3">{data.title}</h2>
       <div className="card p-4">
         <DialoguePlayer turns={data.turns} />
       </div>

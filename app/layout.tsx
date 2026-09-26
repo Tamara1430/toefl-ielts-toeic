@@ -1,22 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Source_Serif_4, IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 
-const sourceSerif = Source_Serif_4({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-serif",
-  display: "swap",
-});
-
-const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
   display: "swap",
 });
 
-const plexMono = IBM_Plex_Mono({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-mono",
@@ -33,15 +26,12 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#f1efe7",
+  themeColor: "#f5f6fb",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="id"
-      className={`h-full antialiased ${sourceSerif.variable} ${plexSans.variable} ${plexMono.variable}`}
-    >
+    <html lang="id" className={`h-full antialiased ${inter.variable} ${jetbrainsMono.variable}`}>
       <body className="min-h-full flex flex-col font-sans bg-paper text-ink">
         {children}
         <BottomNav />

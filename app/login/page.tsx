@@ -42,11 +42,11 @@ export default function LoginPage() {
           <div className="w-7 h-7 rounded-[4px] bg-ink flex items-center justify-center">
             <span className="text-surface text-xs font-mono font-semibold">EA</span>
           </div>
-          <span className="font-serif text-lg text-ink">Exam AI</span>
+          <span className="font-bold text-lg text-ink">Exam AI</span>
         </div>
 
         <div className="card p-7">
-          <h1 className="font-serif text-xl text-ink mb-1">Masuk ke akunmu</h1>
+          <h1 className="font-bold text-xl text-ink mb-1">Masuk ke akunmu</h1>
           <p className="text-sm text-ink-soft mb-6">Lanjutkan latihan dari titik terakhirmu.</p>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

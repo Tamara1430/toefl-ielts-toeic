@@ -65,7 +65,7 @@ export default function SertifikatPage({
               <p className="text-xs font-medium text-ink-faint tracking-[0.15em] mb-1">
                 SERTIFIKAT HASIL LATIHAN
               </p>
-              <h1 className="font-serif text-2xl text-ink mb-1">
+              <h1 className="font-bold text-2xl text-ink mb-1">
                 {attempt.score_breakdown.examLabel}
               </h1>
               <p className="text-sm text-ink-faint mb-6">

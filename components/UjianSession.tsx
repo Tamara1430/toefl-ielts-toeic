@@ -6,6 +6,7 @@ import { ExamType, EXAM_LABELS } from "@/lib/examConfig";
 import McqQuestions, { McqQuestion } from "@/components/McqQuestions";
 import DialoguePlayer from "@/components/DialoguePlayer";
 import SpeakingSession, { SpeakingTask } from "@/components/SpeakingSession";
+import UjianTopBar from "@/components/UjianTopBar";
 import { Loader2, FileWarning, ArrowRight } from "lucide-react";
 
 interface ReadingItem {
@@ -126,110 +127,134 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
-        <Loader2 size={18} className="animate-spin" /> Menyiapkan sesi ujian...
-      </div>
+      <>
+        <UjianTopBar examLabel={EXAM_LABELS[exam]} exitHref="/latihan" />
+        <div className="container-page px-5 pt-6">
+          <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
+            <Loader2 size={18} className="animate-spin" /> Menyiapkan sesi ujian...
+          </div>
+        </div>
+      </>
     );
   }
 
   if (notReadyMessage) {
     return (
-      <div className="card p-6 text-center" style={{ borderColor: "var(--gold)" }}>
-        <FileWarning className="mx-auto text-gold-ink mb-3" size={28} />
-        <h3 className="font-serif text-lg text-ink mb-1">Ujian belum siap</h3>
-        <p className="text-sm text-ink-soft">{notReadyMessage}</p>
-      </div>
+      <>
+        <UjianTopBar examLabel={EXAM_LABELS[exam]} exitHref="/latihan" />
+        <div className="container-page px-5 pt-6">
+          <div className="card p-6 text-center">
+            <FileWarning className="mx-auto text-gold-ink mb-3" size={28} />
+            <h3 className="text-lg font-bold text-ink mb-1">Ujian belum siap</h3>
+            <p className="text-sm text-ink-soft">{notReadyMessage}</p>
+          </div>
+        </div>
+      </>
     );
   }
 
   if (error) {
-    return <p className="text-sm text-red-ink bg-red-tint border border-red rounded-[7px] p-3">{error}</p>;
+    return (
+      <>
+        <UjianTopBar examLabel={EXAM_LABELS[exam]} exitHref="/latihan" />
+        <div className="container-page px-5 pt-6">
+          <p className="text-sm text-red-ink bg-red-tint border border-transparent rounded-[10px] p-3">
+            {error}
+          </p>
+        </div>
+      </>
+    );
   }
 
   if (submitting) {
     return (
-      <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
-        <Loader2 size={18} className="animate-spin" /> Menghitung hasil & membuat sertifikat...
-      </div>
+      <>
+        <UjianTopBar
+          examLabel={EXAM_LABELS[exam]}
+          step={totalSteps}
+          totalSteps={totalSteps}
+          exitHref="/latihan"
+        />
+        <div className="container-page px-5 pt-6">
+          <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
+            <Loader2 size={18} className="animate-spin" /> Menghitung hasil & membuat sertifikat...
+          </div>
+        </div>
+      </>
     );
   }
 
   if (!session || !currentStep) return null;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-ink-soft">
-          {EXAM_LABELS[exam]} — Langkah <span className="stat-num">{stepIndex + 1}</span> dari{" "}
-          <span className="stat-num">{totalSteps}</span>
-        </p>
-        <div className="w-32 h-1.5 bg-[var(--rule)] rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all"
-            style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%`, background: "var(--red)" }}
-          />
-        </div>
-      </div>
-
-      {currentStep.kind === "reading" && (
-        <ReadingStep
-          key={`r-${currentStep.index}`}
-          item={session.reading[currentStep.index]}
-          isLast={isLastStep}
-          onDone={(correct, total) => {
-            const next = [...readingResults, { correct, total }];
-            setReadingResults(next);
-            if (isLastStep) handleSubmitAll(next, listeningResults, speakingScores);
-            else goNext();
-          }}
-        />
-      )}
-
-      {currentStep.kind === "listening" && (
-        <ListeningStep
-          key={`l-${currentStep.index}`}
-          item={session.listening[currentStep.index]}
-          isLast={isLastStep}
-          onDone={(correct, total) => {
-            const next = [...listeningResults, { correct, total }];
-            setListeningResults(next);
-            if (isLastStep) handleSubmitAll(readingResults, next, speakingScores);
-            else goNext();
-          }}
-        />
-      )}
-
-      {currentStep.kind === "speaking" && (
-        <div key={`s-${currentStep.index}`}>
-          <h2 className="font-serif text-lg text-ink mb-3">
-            {session.speaking[currentStep.index].payload.title}
-          </h2>
-          <SpeakingSession
-            key={`s-${currentStep.index}`}
-            exam={exam}
-            difficulty="advanced"
-            task={session.speaking[currentStep.index].payload}
-            questionId={session.speaking[currentStep.index].id}
-            skipHistory
-            onScored={(score) => {
-              const next = [...speakingScores, score];
-              setSpeakingScores(next);
+    <>
+      <UjianTopBar
+        examLabel={EXAM_LABELS[exam]}
+        step={stepIndex + 1}
+        totalSteps={totalSteps}
+        exitHref="/latihan"
+      />
+      <div className="container-page px-5 pt-6">
+        {currentStep.kind === "reading" && (
+          <ReadingStep
+            key={`r-${currentStep.index}`}
+            item={session.reading[currentStep.index]}
+            isLast={isLastStep}
+            onDone={(correct, total) => {
+              const next = [...readingResults, { correct, total }];
+              setReadingResults(next);
+              if (isLastStep) handleSubmitAll(next, listeningResults, speakingScores);
+              else goNext();
             }}
           />
-          {speakingScores.length === currentStep.index + 1 && (
-            <button
-              onClick={() => {
-                if (isLastStep) handleSubmitAll(readingResults, listeningResults, speakingScores);
-                else goNext();
+        )}
+
+        {currentStep.kind === "listening" && (
+          <ListeningStep
+            key={`l-${currentStep.index}`}
+            item={session.listening[currentStep.index]}
+            isLast={isLastStep}
+            onDone={(correct, total) => {
+              const next = [...listeningResults, { correct, total }];
+              setListeningResults(next);
+              if (isLastStep) handleSubmitAll(readingResults, next, speakingScores);
+              else goNext();
+            }}
+          />
+        )}
+
+        {currentStep.kind === "speaking" && (
+          <div key={`s-${currentStep.index}`}>
+            <h2 className="text-lg font-bold text-ink mb-3">
+              {session.speaking[currentStep.index].payload.title}
+            </h2>
+            <SpeakingSession
+              key={`s-${currentStep.index}`}
+              exam={exam}
+              difficulty="advanced"
+              task={session.speaking[currentStep.index].payload}
+              questionId={session.speaking[currentStep.index].id}
+              skipHistory
+              onScored={(score) => {
+                const next = [...speakingScores, score];
+                setSpeakingScores(next);
               }}
-              className="btn btn-primary mt-5"
-            >
-              {isLastStep ? "Selesai & lihat sertifikat" : "Lanjut"} <ArrowRight size={16} />
-            </button>
-          )}
-        </div>
-      )}
-    </div>
+            />
+            {speakingScores.length === currentStep.index + 1 && (
+              <button
+                onClick={() => {
+                  if (isLastStep) handleSubmitAll(readingResults, listeningResults, speakingScores);
+                  else goNext();
+                }}
+                className="btn btn-primary mt-5"
+              >
+                {isLastStep ? "Selesai & lihat sertifikat" : "Lanjut"} <ArrowRight size={16} />
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -245,7 +270,7 @@ function ReadingStep({
   const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
   return (
     <div>
-      <h2 className="font-serif text-lg text-ink mb-3">{item.payload.title}</h2>
+      <h2 className="font-bold text-lg text-ink mb-3">{item.payload.title}</h2>
       <div className="card p-4 leading-relaxed whitespace-pre-wrap mb-2">
         {item.payload.passage}
       </div>
@@ -274,7 +299,7 @@ function ListeningStep({
   const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
   return (
     <div>
-      <h2 className="font-serif text-lg text-ink mb-3">{item.payload.title}</h2>
+      <h2 className="font-bold text-lg text-ink mb-3">{item.payload.title}</h2>
       <div className="card p-4 mb-2">
         <DialoguePlayer turns={item.payload.turns} />
       </div>
