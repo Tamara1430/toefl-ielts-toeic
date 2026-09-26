@@ -30,52 +30,69 @@ function ProgressContent() {
   const streak = computeStreak(allHistory);
   const avg = averageScore(allHistory);
 
+  const activeIdx = exams.indexOf(exam);
+
   return (
     <main className="min-h-screen bg-paper pb-24">
-      <div className="page-head !pb-4">
-        <h1 className="page-head__title">Progress belajar</h1>
-        <p className="page-head__desc">
-          Pantau perkembangan skormu di setiap exam dari waktu ke waktu.
-        </p>
+      <div className="page-head header-glow !pb-5">
+        <div className="anim-fade-up">
+          <h1 className="page-head__title">Progress belajar</h1>
+          <p className="page-head__desc">
+            Pantau perkembangan skormu di setiap exam dari waktu ke waktu.
+          </p>
+        </div>
       </div>
 
-      <div className="container-page px-5 pt-6">
+      <div className="container-page px-5 pt-2">
         {loaded && (
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="card p-3.5 text-center">
-              <p className="stat-num text-xl">{allHistory.length}</p>
-              <p className="text-xs text-ink-soft mt-1">Total sesi</p>
-            </div>
-            <div className="card p-3.5 text-center">
-              <p className="stat-num text-xl">{avg !== null ? `${avg}%` : "—"}</p>
-              <p className="text-xs text-ink-soft mt-1">Rata-rata skor</p>
-            </div>
-            <div className="card p-3.5 text-center flex flex-col items-center justify-center">
-              <p className="stat-num text-xl flex items-center gap-1">
-                <Flame size={16} className="text-gold-ink" /> {streak}
-              </p>
-              <p className="text-xs text-ink-soft mt-1">Hari beruntun</p>
-            </div>
+            {[
+              { label: "Total sesi", value: allHistory.length },
+              { label: "Rata-rata skor", value: avg !== null ? `${avg}%` : "—" },
+              {
+                label: "Hari beruntun",
+                value: (
+                  <span className="flex items-center gap-1">
+                    <Flame size={16} className="text-gold-ink" /> {streak}
+                  </span>
+                ),
+              },
+            ].map((s, i) => (
+              <div
+                key={s.label}
+                className="card lift p-3.5 text-center flex flex-col items-center justify-center anim-fade-up stagger"
+                style={{ ["--d" as string]: `${i * 70}ms` }}
+              >
+                <p className="stat-num text-xl">{s.value}</p>
+                <p className="text-xs text-ink-soft mt-1">{s.label}</p>
+              </div>
+            ))}
           </div>
         )}
 
-        <div className="flex gap-2 mb-5">
+        <div className="pill-tabs mb-5 anim-fade-up stagger" style={{ ["--d" as string]: "180ms" }}>
+          <span
+            className="pill-tab-indicator"
+            style={{
+              width: `${100 / exams.length}%`,
+              transform: `translateX(${activeIdx * 100}%)`,
+            }}
+          />
           {exams.map((e) => (
             <button
               key={e}
               onClick={() => setExam(e)}
-              className={`px-4 py-2 rounded-[7px] text-sm font-medium transition-colors border ${
-                exam === e
-                  ? "bg-ink text-surface border-ink"
-                  : "bg-surface text-ink-soft border-rule-strong hover:border-ink"
-              }`}
+              data-active={exam === e}
+              className="pill-tab flex-1"
             >
-              {EXAM_LABELS[e]}
+              <span>{EXAM_LABELS[e]}</span>
             </button>
           ))}
         </div>
 
-        <SessionHistory exam={exam} />
+        <div key={exam} className="anim-fade-up">
+          <SessionHistory exam={exam} />
+        </div>
       </div>
     </main>
   );

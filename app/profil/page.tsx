@@ -120,19 +120,29 @@ export default function ProfilPage() {
     );
   }
 
+  const initial = profile.email.charAt(0).toUpperCase();
+
   return (
     <main className="min-h-screen bg-paper pb-24">
-      <div className="page-head flex items-start justify-between !pb-4">
-        <div>
-          <p className="text-sm text-ink-soft">Akun</p>
-          <h1 className="page-head__title">Profil</h1>
+      <div className="page-head header-glow flex items-start justify-between !pb-6">
+        <div className="flex items-center gap-3 anim-fade-up">
+          <div
+            className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-bold shrink-0 anim-pop"
+            style={{ background: "var(--indigo-tint)", color: "var(--indigo)" }}
+          >
+            {initial}
+          </div>
+          <div>
+            <p className="text-sm text-ink-soft">Akun</p>
+            <h1 className="page-head__title !text-xl">Profil</h1>
+          </div>
         </div>
-        <LogoutButton className="text-xs text-ink-faint hover:text-red transition-colors" />
+        <LogoutButton className="text-xs text-ink-faint hover:text-red transition-colors anim-fade-up" />
       </div>
 
-      <div className="container-page px-5 pt-6">
+      <div className="container-page px-5 pt-2">
         {/* Account info */}
-        <div className="card p-5 mb-4">
+        <div className="card p-5 mb-4 anim-fade-up stagger" style={{ ["--d" as string]: "0ms" }}>
           <div className="flex items-center gap-3 mb-4">
             <Mail size={17} className="text-ink-soft shrink-0" />
             <div className="min-w-0">
@@ -149,8 +159,12 @@ export default function ProfilPage() {
             )}
             <div className="min-w-0">
               <p className="text-xs text-ink-faint">Status akun</p>
-              <p className="text-sm font-medium text-ink">
+              <p className="text-sm font-medium text-ink flex items-center gap-1.5">
                 {profile.is_active ? "Aktif" : "Belum aktif"}
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${profile.is_active ? "anim-glow" : ""}`}
+                  style={{ background: profile.is_active ? "var(--pine)" : "var(--gold)" }}
+                />
               </p>
             </div>
           </div>
@@ -173,7 +187,7 @@ export default function ProfilPage() {
         </div>
 
         {/* Current package */}
-        <div className="card p-5 mb-4">
+        <div className="card p-5 mb-4 anim-fade-up stagger" style={{ ["--d" as string]: "80ms" }}>
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Package size={16} className="text-ink-soft" />
@@ -189,7 +203,7 @@ export default function ProfilPage() {
 
           {isUltimate && (
             <div
-              className="flex items-center gap-2 rounded-[7px] px-3 py-2 mb-3 border"
+              className="flex items-center gap-2 rounded-[7px] px-3 py-2 mb-3 border anim-glow"
               style={{ background: "var(--gold-tint)", borderColor: "var(--gold)" }}
             >
               <Crown size={16} className="text-gold-ink" />
@@ -198,13 +212,14 @@ export default function ProfilPage() {
           )}
 
           <div className="flex flex-col gap-2">
-            {EXAMS.map((exam) => {
+            {EXAMS.map((exam, i) => {
               const level = getEntitlement(profile.entitlements, exam);
               const badge = LEVEL_BADGE[level];
               return (
                 <div
                   key={exam}
-                  className="flex items-center justify-between rounded-[7px] border border-rule px-3 py-2.5"
+                  className="flex items-center justify-between rounded-[7px] border border-rule px-3 py-2.5 lift anim-fade-up stagger"
+                  style={{ ["--d" as string]: `${120 + i * 50}ms` }}
                 >
                   <span className="text-sm font-medium text-ink">{EXAM_LABELS[exam]}</span>
                   <span className={badge.className}>{badge.label}</span>
@@ -215,7 +230,7 @@ export default function ProfilPage() {
         </div>
 
         {/* Change password */}
-        <div className="card p-5">
+        <div className="card p-5 anim-fade-up stagger" style={{ ["--d" as string]: "160ms" }}>
           <div className="flex items-center gap-2 mb-4">
             <KeyRound size={16} className="text-ink-soft" />
             <h2 className="font-bold text-base text-ink">Ganti password</h2>

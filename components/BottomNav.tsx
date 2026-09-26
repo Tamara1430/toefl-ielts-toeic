@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Dumbbell, BarChart3, ShieldCheck, User } from "lucide-react";
+import { Home, Dumbbell, GraduationCap, BarChart3, ShieldCheck, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const baseTabs = [
@@ -13,6 +13,12 @@ const baseTabs = [
     label: "Latihan",
     icon: Dumbbell,
     match: (p: string) => p.startsWith("/latihan") || p.startsWith("/exam"),
+  },
+  {
+    href: "/ujian",
+    label: "Ujian",
+    icon: GraduationCap,
+    match: (p: string) => p.startsWith("/ujian"),
   },
   {
     href: "/progress",
@@ -61,35 +67,50 @@ export default function BottomNav() {
   }
 
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
+  const activeIndex = Math.max(
+    0,
+    tabs.findIndex((t) => t.match(pathname))
+  );
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-rule pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgba(17,24,39,0.04)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 pb-[calc(env(safe-area-inset-bottom)+0.6rem)] px-3 pointer-events-none">
       <div
-        className="max-w-3xl mx-auto grid"
-        style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
+        className="max-w-md mx-auto relative grid rounded-[26px] bg-surface/90 backdrop-blur-md border border-rule pointer-events-auto"
+        style={{
+          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
+          boxShadow: "0 12px 32px rgba(17,24,39,0.10), 0 2px 8px rgba(17,24,39,0.05)",
+        }}
       >
+        {/* Sliding active indicator */}
+        <span
+          aria-hidden
+          className="absolute top-1.5 bottom-1.5 rounded-2xl bg-indigo-tint transition-all duration-300 ease-out"
+          style={{
+            width: `calc(${100 / tabs.length}% - 8px)`,
+            left: `calc(${(100 / tabs.length) * activeIndex}% + 4px)`,
+          }}
+        />
+
         {tabs.map(({ href, label, icon: Icon, match }) => {
           const active = match(pathname);
           return (
             <Link
               key={href}
               href={href}
-              className="flex flex-col items-center gap-1 py-2.5 text-xs transition-colors"
+              className="relative z-10 flex flex-col items-center gap-0.5 py-2.5 text-xs transition-transform active:scale-90"
             >
+              <Icon
+                size={19}
+                strokeWidth={active ? 2.4 : 1.9}
+                className="transition-transform duration-300"
+                style={{
+                  color: active ? "var(--indigo)" : "var(--ink-faint)",
+                  transform: active ? "translateY(-1px) scale(1.05)" : "none",
+                }}
+              />
               <span
-                className={`flex items-center justify-center w-11 h-7 rounded-full transition-colors ${
-                  active ? "bg-indigo-tint" : ""
-                }`}
-              >
-                <Icon
-                  size={19}
-                  strokeWidth={active ? 2.3 : 1.9}
-                  color={active ? "var(--indigo)" : "var(--ink-faint)"}
-                />
-              </span>
-              <span
-                className={active ? "font-semibold" : "font-medium"}
-                style={{ color: active ? "var(--indigo)" : "var(--ink-faint)" }}
+                className={`transition-colors duration-200 ${active ? "font-semibold" : "font-medium"}`}
+                style={{ color: active ? "var(--indigo)" : "var(--ink-faint)", fontSize: "10.5px" }}
               >
                 {label}
               </span>

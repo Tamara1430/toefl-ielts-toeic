@@ -16,27 +16,46 @@ const examAccent: Record<ExamType, string> = {
   toeic: "var(--red)",
 };
 
+const examTint: Record<ExamType, string> = {
+  toefl: "var(--pine-tint)",
+  ielts: "var(--gold-tint)",
+  toeic: "var(--red-tint)",
+};
+
 export default function LatihanPage() {
   return (
     <main className="min-h-screen bg-paper pb-24">
-      <div className="page-head flex items-start justify-between !pb-4">
-        <div>
+      <div className="page-head header-glow flex items-start justify-between !pb-5">
+        <div className="anim-fade-up">
           <h1 className="page-head__title">Pilih latihan</h1>
           <p className="page-head__desc">
             Setiap exam punya 3 mode: Reading, Listening, dan Speaking.
           </p>
         </div>
-        <Link href="/billing" className="text-xs text-ink-soft hover:text-ink font-medium shrink-0 pt-1">
+        <Link
+          href="/billing"
+          className="text-xs text-ink-soft hover:text-ink font-medium shrink-0 pt-1 anim-fade-up"
+        >
           Lihat paket
         </Link>
       </div>
 
-      <div className="container-page px-5 pt-6">
+      <div className="container-page px-5 pt-2">
         <div className="flex flex-col gap-4">
-          {exams.map((exam) => (
-            <div key={exam} className="card p-5" style={{ borderLeft: `3px solid ${examAccent[exam]}` }}>
+          {exams.map((exam, i) => (
+            <div
+              key={exam}
+              className="card card-accent lift p-5 anim-fade-up stagger"
+              style={{ ["--accent" as string]: examAccent[exam], ["--d" as string]: `${i * 90}ms` }}
+            >
               <Link href={`/exam/${exam}`} className="flex items-center gap-4 group">
-                <div className="flex-1">
+                <div
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+                  style={{ background: examTint[exam], color: examAccent[exam] }}
+                >
+                  <BookOpenText size={20} />
+                </div>
+                <div className="flex-1 min-w-0">
                   <h2 className="font-bold text-lg text-ink">{EXAM_LABELS[exam]}</h2>
                   <p className="text-sm text-ink-soft mt-0.5">{descriptions[exam]}</p>
                   <div className="flex gap-3 text-ink-faint mt-3">
@@ -47,7 +66,7 @@ export default function LatihanPage() {
                 </div>
                 <ChevronRight
                   size={20}
-                  className="text-ink-faint group-hover:text-ink transition-colors shrink-0"
+                  className="text-ink-faint group-hover:text-ink group-hover:translate-x-0.5 transition-all shrink-0"
                 />
               </Link>
               <Link
@@ -60,7 +79,7 @@ export default function LatihanPage() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-ink-faint mt-10">
+        <p className="text-center text-xs text-ink-faint mt-10 anim-fade-in">
           Ditenagai oleh Groq API (gpt-oss-120b, Whisper, Orpheus TTS + Edge TTS fallback)
         </p>
       </div>
