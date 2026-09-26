@@ -92,18 +92,18 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-400 py-4 px-1">
+      <div className="flex items-center gap-2 text-sm text-ink-faint py-4 px-1">
         <Loader2 size={14} className="animate-spin" /> Memuat soal...
       </div>
     );
   }
 
   if (questions.length === 0) {
-    return <p className="text-sm text-neutral-400 py-4 px-1">Belum ada soal untuk kombinasi ini.</p>;
+    return <p className="text-sm text-ink-faint py-4 px-1">Belum ada soal untuk kombinasi ini.</p>;
   }
 
   return (
-    <div className="flex flex-col divide-y divide-neutral-100 px-1">
+    <div className="flex flex-col divide-y divide-[var(--rule)] px-1">
       {questions.map((q) => {
         const isActiveFromBulk = activeQuestionId === q.id;
         const isGeneratingThis = generatingIds.has(q.id);
@@ -123,7 +123,7 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
             key={q.id}
             className={`py-2.5 flex items-center justify-between gap-3 text-sm transition flex-wrap ${
               isActiveFromBulk || isGeneratingThis || isFixingGenderThis
-                ? "bg-indigo-50 -mx-1 px-1 rounded-lg"
+                ? "bg-paper -mx-1 px-1 rounded-[7px]"
                 : ""
             }`}
           >
@@ -131,32 +131,32 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
               <p className="font-medium truncate flex items-center gap-1.5">
                 {title}
                 {(isActiveFromBulk || isGeneratingThis || isFixingGenderThis) && (
-                  <span className="inline-flex items-center gap-1 text-xs text-indigo-600 font-normal shrink-0">
+                  <span className="inline-flex items-center gap-1 text-xs text-ink font-normal shrink-0">
                     <Sparkles size={11} className="animate-pulse" /> sedang diproses
                   </span>
                 )}
                 {usedEdge && (
-                  <span className="text-xs text-neutral-400 shrink-0">(sebagian via Edge TTS)</span>
+                  <span className="text-xs text-ink-faint shrink-0">(sebagian via Edge TTS)</span>
                 )}
               </p>
-              <p className="text-xs text-neutral-400">
+              <p className="text-xs text-ink-faint">
                 {new Date(q.created_at).toLocaleString("id-ID")}
               </p>
               {errors.length > 0 && (
-                <p className="text-xs text-red-600 mt-1">
+                <p className="text-xs text-red-ink mt-1">
                   {errors.length} giliran audio gagal — coba klik Generate lagi.
                 </p>
               )}
               {genderErrors.length > 0 && (
-                <p className="text-xs text-red-600 mt-1">{genderErrors[0]}</p>
+                <p className="text-xs text-red-ink mt-1">{genderErrors[0]}</p>
               )}
             </div>
 
             {totalTurns !== null && (
               <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                 <span
-                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                    genderComplete ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-[7px] ${
+                    genderComplete ? "bg-pine-tint text-pine" : "bg-gold-tint text-gold-ink"
                   }`}
                 >
                   {genderComplete ? <UserCheck size={12} /> : <UserX size={12} />}
@@ -166,7 +166,7 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
                   <button
                     onClick={() => handleFixGenderOne(q.id)}
                     disabled={isFixingGenderThis}
-                    className="flex items-center gap-1 text-xs rounded-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 px-2.5 py-1 font-medium transition"
+                    className="flex items-center gap-1 text-xs rounded-[7px] border border-rule-strong text-ink hover:bg-paper disabled:opacity-50 px-2.5 py-1 font-medium transition"
                   >
                     {isFixingGenderThis ? (
                       <Loader2 size={11} className="animate-spin" />
@@ -178,8 +178,8 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
                 )}
 
                 <span
-                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-                    audioComplete ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+                  className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-[7px] ${
+                    audioComplete ? "bg-pine-tint text-pine" : "bg-gold-tint text-gold-ink"
                   }`}
                 >
                   {audioComplete ? <Volume2 size={12} /> : <VolumeX size={12} />}
@@ -189,7 +189,7 @@ export default function AdminQuestionList({ exam, section, difficulty, activeQue
                   <button
                     onClick={() => handleGenerateOne(q.id)}
                     disabled={isGeneratingThis}
-                    className="flex items-center gap-1 text-xs rounded-full border border-indigo-200 text-indigo-600 hover:bg-indigo-50 disabled:opacity-50 px-2.5 py-1 font-medium transition"
+                    className="flex items-center gap-1 text-xs rounded-[7px] border border-rule-strong text-ink hover:bg-paper disabled:opacity-50 px-2.5 py-1 font-medium transition"
                   >
                     {isGeneratingThis ? (
                       <Loader2 size={11} className="animate-spin" />

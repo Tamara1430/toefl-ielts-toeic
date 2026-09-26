@@ -99,36 +99,34 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-24">
-      <div className="max-w-3xl mx-auto px-5 pt-8">
-        <div className="flex items-center justify-between mb-4">
-          <Link
-            href="/latihan"
-            className="inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-neutral-800"
-          >
-            <ArrowLeft size={16} /> Kembali ke Latihan
+    <main className="min-h-screen bg-paper pb-24">
+      <div className="page-head !pb-4">
+        <div className="flex items-center justify-between mb-3">
+          <Link href="/latihan" className="page-head__back !mb-0">
+            <ArrowLeft size={15} /> Kembali ke Latihan
           </Link>
           <Link
             href={`/progress?exam=${exam}`}
-            className="inline-flex items-center gap-1.5 text-sm text-indigo-600 font-medium hover:text-indigo-800"
+            className="inline-flex items-center gap-1.5 text-sm text-ink font-medium"
           >
             <BarChart3 size={16} /> Progress
           </Link>
         </div>
+        <h1 className="page-head__title">{EXAM_LABELS[exam]}</h1>
+        <p className="page-head__desc">Latihan soal dari bank soal AI.</p>
+      </div>
 
-        <h1 className="text-2xl font-bold text-neutral-900 mb-1">{EXAM_LABELS[exam]}</h1>
-        <p className="text-neutral-500 mb-6 text-sm">Latihan soal dari bank soal AI</p>
-
+      <div className="container-page px-5 pt-6">
         {/* Section tabs */}
         <div className="flex gap-2 mb-6 flex-wrap">
           {sections.map((s) => (
             <button
               key={s}
               onClick={() => changeSection(s)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition border ${
+              className={`px-4 py-2 rounded-[7px] text-sm font-medium transition-colors border ${
                 section === s
-                  ? "bg-neutral-900 text-white border-neutral-900"
-                  : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
+                  ? "bg-ink text-surface border-ink"
+                  : "bg-surface text-ink-soft border-rule-strong hover:border-ink"
               }`}
             >
               {SECTION_LABELS[s]}
@@ -136,66 +134,55 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
           ))}
         </div>
 
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition mb-8"
-        >
-          {loading ? <Loader2 size={18} className="animate-spin" /> : <Sparkles size={18} />}
-          {loading ? "Mengambil soal..." : "Ambil Soal"}
+        <button onClick={handleGenerate} disabled={loading} className="btn btn-primary mb-8">
+          {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
+          {loading ? "Mengambil soal..." : "Ambil soal"}
         </button>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3 mb-6">
+          <p className="text-sm text-red-ink bg-red-tint border border-red rounded-[7px] p-3 mb-6">
             {error}
           </p>
         )}
 
         {quotaExceeded && (
-          <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-6 text-center">
-            <Lock className="mx-auto text-indigo-500 mb-3" size={32} />
-            <h3 className="font-semibold text-neutral-900 mb-1">
+          <div className="card p-6 text-center" style={{ borderColor: "var(--gold)" }}>
+            <Lock className="mx-auto text-gold-ink mb-3" size={28} />
+            <h3 className="font-serif text-lg text-ink mb-1">
               Kuota gratis {SECTION_LABELS[section].toLowerCase()} sudah habis
             </h3>
-            <p className="text-sm text-neutral-600 mb-4">
+            <p className="text-sm text-ink-soft mb-4">
               Kamu sudah kerjakan semua soal {SECTION_LABELS[section].toLowerCase()} gratis untuk{" "}
               {EXAM_LABELS[exam]}. Upgrade ke Premium {EXAM_LABELS[exam]} untuk latihan tanpa
               batas, plus akses Ujian dan sertifikat hasil skor.
             </p>
-            <Link
-              href="/billing"
-              className="inline-flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition"
-            >
-              Lihat Paket
+            <Link href="/billing" className="btn btn-primary inline-flex">
+              Lihat paket
             </Link>
           </div>
         )}
 
         {audioPending && (
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-6 text-center">
-            <Headphones className="mx-auto text-blue-500 mb-3" size={32} />
-            <h3 className="font-semibold text-neutral-900 mb-1">
-              Soal ada, tapi audionya belum siap 🎧
-            </h3>
-            <p className="text-sm text-neutral-600 mb-1">
+          <div className="card p-6 text-center">
+            <Headphones className="mx-auto text-ink-soft mb-3" size={28} />
+            <h3 className="font-serif text-lg text-ink mb-1">Soal ada, tapi audionya belum siap</h3>
+            <p className="text-sm text-ink-soft mb-1">
               Ada soal listening untuk {EXAM_LABELS[exam]} yang belum kamu kerjakan, tapi
               suaranya masih diproses admin.
             </p>
-            <p className="text-sm text-neutral-500">Tunggu sebentar lalu coba lagi, ya.</p>
+            <p className="text-sm text-ink-faint">Tunggu sebentar lalu coba lagi, ya.</p>
           </div>
         )}
 
         {outOfStock && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-            <PackageX className="mx-auto text-amber-500 mb-3" size={32} />
-            <h3 className="font-semibold text-neutral-900 mb-1">
-              Waduh, stok soal habis untuk ini 🙏
-            </h3>
-            <p className="text-sm text-neutral-600 mb-1">
+          <div className="card p-6 text-center">
+            <PackageX className="mx-auto text-ink-soft mb-3" size={28} />
+            <h3 className="font-serif text-lg text-ink mb-1">Stok soal habis untuk ini</h3>
+            <p className="text-sm text-ink-soft mb-1">
               Kamu sudah mengerjakan semua soal {SECTION_LABELS[section].toLowerCase()} yang
               tersedia untuk {EXAM_LABELS[exam]}.
             </p>
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-ink-faint">
               Soal baru ditambahkan otomatis secara berkala — coba lagi nanti, atau coba mode
               lain dulu.
             </p>
@@ -203,8 +190,8 @@ export default function ExamPractice({ exam }: { exam: ExamType }) {
         )}
 
         {!data && !loading && !outOfStock && !audioPending && !quotaExceeded && (
-          <p className="text-neutral-400 text-sm">
-            Klik &ldquo;Ambil Soal&rdquo; untuk mulai latihan {SECTION_LABELS[section].toLowerCase()}.
+          <p className="text-ink-faint text-sm">
+            Klik &ldquo;Ambil soal&rdquo; untuk mulai latihan {SECTION_LABELS[section].toLowerCase()}.
           </p>
         )}
 
@@ -250,8 +237,8 @@ function ReadingView({
 }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-3">{data.title}</h2>
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 leading-relaxed whitespace-pre-wrap">
+      <h2 className="font-serif text-lg text-ink mb-3">{data.title}</h2>
+      <div className="card p-4 leading-relaxed whitespace-pre-wrap text-[0.95rem]">
         {data.passage}
       </div>
       <McqQuestions
@@ -285,8 +272,8 @@ function ListeningView({
 }) {
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-3">{data.title}</h2>
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <h2 className="font-serif text-lg text-ink mb-3">{data.title}</h2>
+      <div className="card p-4">
         <DialoguePlayer turns={data.turns} />
       </div>
       <McqQuestions

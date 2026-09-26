@@ -31,28 +31,30 @@ function ProgressContent() {
   const avg = averageScore(allHistory);
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-24">
-      <div className="max-w-3xl mx-auto px-5 pt-8">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-1">Progress Belajar</h1>
-        <p className="text-neutral-500 text-sm mb-5">
+    <main className="min-h-screen bg-paper pb-24">
+      <div className="page-head !pb-4">
+        <h1 className="page-head__title">Progress belajar</h1>
+        <p className="page-head__desc">
           Pantau perkembangan skormu di setiap exam dari waktu ke waktu.
         </p>
+      </div>
 
+      <div className="container-page px-5 pt-6">
         {loaded && (
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center">
-              <p className="text-xl font-bold text-neutral-900">{allHistory.length}</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Total Sesi</p>
+            <div className="card p-3.5 text-center">
+              <p className="stat-num text-xl">{allHistory.length}</p>
+              <p className="text-xs text-ink-soft mt-1">Total sesi</p>
             </div>
-            <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center">
-              <p className="text-xl font-bold text-neutral-900">{avg !== null ? `${avg}%` : "—"}</p>
-              <p className="text-xs text-neutral-400 mt-0.5">Rata-rata Skor</p>
+            <div className="card p-3.5 text-center">
+              <p className="stat-num text-xl">{avg !== null ? `${avg}%` : "—"}</p>
+              <p className="text-xs text-ink-soft mt-1">Rata-rata skor</p>
             </div>
-            <div className="rounded-xl border border-neutral-200 bg-white p-3 text-center flex flex-col items-center justify-center">
-              <p className="text-xl font-bold text-neutral-900 flex items-center gap-1">
-                <Flame size={16} className="text-orange-500" /> {streak}
+            <div className="card p-3.5 text-center flex flex-col items-center justify-center">
+              <p className="stat-num text-xl flex items-center gap-1">
+                <Flame size={16} className="text-gold-ink" /> {streak}
               </p>
-              <p className="text-xs text-neutral-400 mt-0.5">Hari Beruntun</p>
+              <p className="text-xs text-ink-soft mt-1">Hari beruntun</p>
             </div>
           </div>
         )}
@@ -62,10 +64,10 @@ function ProgressContent() {
             <button
               key={e}
               onClick={() => setExam(e)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition border ${
+              className={`px-4 py-2 rounded-[7px] text-sm font-medium transition-colors border ${
                 exam === e
-                  ? "bg-neutral-900 text-white border-neutral-900"
-                  : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
+                  ? "bg-ink text-surface border-ink"
+                  : "bg-surface text-ink-soft border-rule-strong hover:border-ink"
               }`}
             >
               {EXAM_LABELS[e]}

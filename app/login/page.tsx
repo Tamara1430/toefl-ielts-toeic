@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { Loader2, LogIn } from "lucide-react";
+import { Loader2, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -36,55 +36,61 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-neutral-50 px-5">
+    <main className="min-h-screen flex items-center justify-center bg-paper px-5 py-12">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-neutral-900">Exam AI</h1>
-          <p className="text-neutral-500 text-sm mt-1">Masuk untuk mulai latihan</p>
+        <div className="flex items-center gap-2.5 mb-10 justify-center">
+          <div className="w-7 h-7 rounded-[4px] bg-ink flex items-center justify-center">
+            <span className="text-surface text-xs font-mono font-semibold">EA</span>
+          </div>
+          <span className="font-serif text-lg text-ink">Exam AI</span>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm"
-              placeholder="kamu@email.com"
-            />
-          </div>
-          <div>
-            <label className="text-sm font-medium text-neutral-700 mb-1 block">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2.5 text-sm"
-              placeholder="••••••••"
-            />
-          </div>
+        <div className="card p-7">
+          <h1 className="font-serif text-xl text-ink mb-1">Masuk ke akunmu</h1>
+          <p className="text-sm text-ink-soft mb-6">Lanjutkan latihan dari titik terakhirmu.</p>
 
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
-              {error}
-            </p>
-          )}
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <div>
+              <label className="field-label">Email</label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="field"
+                placeholder="kamu@email.com"
+              />
+            </div>
+            <div>
+              <label className="field-label">Kata sandi</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="field"
+                placeholder="••••••••"
+              />
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex items-center justify-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition mt-2"
-          >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <LogIn size={18} />}
-            Masuk
-          </button>
-        </form>
+            {error && (
+              <p className="text-sm text-red-ink bg-red-tint border border-red rounded-[7px] p-3">
+                {error}
+              </p>
+            )}
 
-        <p className="text-center text-xs text-neutral-400 mt-6">
-          Belum punya akun? <Link href="/signup" className="text-indigo-600 font-medium">Daftar gratis</Link>
+            <button type="submit" disabled={loading} className="btn btn-primary mt-2">
+              {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+              Masuk
+            </button>
+          </form>
+        </div>
+
+        <p className="text-center text-sm text-ink-soft mt-6">
+          Belum punya akun?{" "}
+          <Link href="/signup" className="text-ink font-medium underline underline-offset-2">
+            Daftar gratis
+          </Link>
         </p>
       </div>
     </main>

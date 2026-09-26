@@ -99,18 +99,18 @@ export default function TtsPlayer({ text }: Props) {
       <button
         onClick={playing ? handlePause : handlePlay}
         disabled={loading}
-        className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition w-fit"
+        className="btn btn-primary w-fit"
       >
         {loading ? (
-          <Loader2 size={18} className="animate-spin" />
+          <Loader2 size={16} className="animate-spin" />
         ) : playing ? (
-          <PauseCircle size={18} />
+          <PauseCircle size={16} />
         ) : (
-          <Volume2 size={18} />
+          <Volume2 size={16} />
         )}
-        {loading ? "Menyiapkan audio..." : playing ? "Jeda" : "Putar Audio"}
+        {loading ? "Menyiapkan audio..." : playing ? "Jeda" : "Putar audio"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-ink">{error}</p>}
     </div>
   );
 }

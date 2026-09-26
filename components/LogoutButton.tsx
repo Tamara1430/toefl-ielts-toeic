@@ -19,7 +19,7 @@ export default function LogoutButton({ className }: { className?: string }) {
       onClick={handleLogout}
       className={
         className ??
-        "inline-flex items-center gap-1.5 text-sm text-neutral-500 hover:text-red-600 transition"
+        "inline-flex items-center gap-1.5 text-sm text-ink-soft transition-colors hover:text-red"
       }
     >
       <LogOut size={15} /> Keluar

@@ -72,30 +72,27 @@ export default function AudioRecorder({ onTranscript, disabled }: Props) {
     <div className="flex flex-col items-start gap-2">
       <div className="flex items-center gap-3">
         {!recording ? (
-          <button
-            onClick={startRecording}
-            disabled={disabled || processing}
-            className="flex items-center gap-2 rounded-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition"
-          >
-            <Mic size={18} />
-            Mulai Rekam
+          <button onClick={startRecording} disabled={disabled || processing} className="btn btn-red">
+            <Mic size={16} />
+            Mulai rekam
           </button>
         ) : (
-          <button
-            onClick={stopRecording}
-            className="flex items-center gap-2 rounded-full bg-neutral-800 hover:bg-neutral-900 text-white px-5 py-2.5 font-medium transition animate-pulse"
-          >
-            <Square size={18} />
+          <button onClick={stopRecording} className="btn btn-primary">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red" />
+            </span>
+            <Square size={15} />
             Berhenti
           </button>
         )}
         {processing && (
-          <span className="flex items-center gap-1.5 text-sm text-neutral-500">
+          <span className="flex items-center gap-1.5 text-sm text-ink-soft">
             <Loader2 size={16} className="animate-spin" /> Mentranskrip...
           </span>
         )}
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-ink">{error}</p>}
     </div>
   );
 }

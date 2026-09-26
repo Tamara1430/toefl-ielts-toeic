@@ -58,7 +58,7 @@ export default function BottomNav() {
   const tabs = isAdmin ? [...baseTabs, adminTab] : baseTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200 pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-rule pb-[env(safe-area-inset-bottom)]">
       <div
         className="max-w-3xl mx-auto grid"
         style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
@@ -69,11 +69,16 @@ export default function BottomNav() {
             <Link
               key={href}
               href={href}
-              className={`flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition ${
-                active ? "text-indigo-600" : "text-neutral-400"
-              }`}
+              className="relative flex flex-col items-center gap-1 py-2.5 text-xs font-medium transition-colors"
+              style={{ color: active ? "var(--ink)" : "var(--ink-faint)" }}
             >
-              <Icon size={22} strokeWidth={active ? 2.4 : 2} />
+              {active && (
+                <span
+                  className="absolute top-0 h-[2px] w-8 rounded-full"
+                  style={{ background: "var(--red)" }}
+                />
+              )}
+              <Icon size={21} strokeWidth={active ? 2.2 : 1.75} />
               {label}
             </Link>
           );

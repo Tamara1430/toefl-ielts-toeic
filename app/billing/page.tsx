@@ -14,27 +14,29 @@ function waLink(packageName: string) {
 
 export default function BillingPage() {
   return (
-    <main className="min-h-screen bg-neutral-50 pb-24">
-      <div className="max-w-3xl mx-auto px-5 pt-8">
-        <h1 className="text-2xl font-bold text-neutral-900 mb-1">Paket & Harga</h1>
-        <p className="text-neutral-500 text-sm mb-6">
+    <main className="min-h-screen bg-paper pb-24">
+      <div className="page-head !pb-4">
+        <h1 className="page-head__title">Paket &amp; harga</h1>
+        <p className="page-head__desc">
           Latihan selalu gratis dengan kuota terbatas. Upgrade untuk latihan tanpa batas, akses
           Ujian, dan sertifikat hasil skor.
         </p>
+      </div>
 
+      <div className="container-page px-5 pt-6">
         {/* Free tier card (current, informational only) */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 mb-4">
-          <p className="text-xs font-medium text-neutral-400 mb-1">PAKET SAAT INI</p>
-          <h2 className="text-lg font-semibold text-neutral-900 mb-2">Free</h2>
-          <ul className="text-sm text-neutral-600 flex flex-col gap-1.5 mb-2">
+        <div className="card p-5 mb-4">
+          <p className="text-xs font-medium text-ink-faint mb-1">Paket saat ini</p>
+          <h2 className="font-serif text-lg text-ink mb-2">Free</h2>
+          <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-2">
             <li className="flex items-center gap-2">
-              <Check size={14} className="text-neutral-400 shrink-0" /> 10 soal Reading per exam
+              <Check size={14} className="text-ink-faint shrink-0" /> 10 soal Reading per exam
             </li>
             <li className="flex items-center gap-2">
-              <Check size={14} className="text-neutral-400 shrink-0" /> 10 soal Listening per exam
+              <Check size={14} className="text-ink-faint shrink-0" /> 10 soal Listening per exam
             </li>
             <li className="flex items-center gap-2">
-              <Check size={14} className="text-neutral-400 shrink-0" /> 3 soal Speaking per exam
+              <Check size={14} className="text-ink-faint shrink-0" /> 3 soal Speaking per exam
             </li>
           </ul>
         </div>
@@ -43,30 +45,30 @@ export default function BillingPage() {
           {PACKAGES.map((pkg) => (
             <div
               key={pkg.id}
-              className={`rounded-2xl border p-5 relative ${
-                pkg.recommended
-                  ? "border-indigo-400 bg-indigo-50/50 shadow-sm"
-                  : "border-neutral-200 bg-white"
-              }`}
+              className="card p-5 relative"
+              style={pkg.recommended ? { borderColor: "var(--gold)", borderWidth: 2 } : undefined}
             >
               {pkg.recommended && (
-                <span className="absolute -top-3 left-5 inline-flex items-center gap-1 bg-indigo-600 text-white text-xs font-medium px-3 py-1 rounded-full">
-                  <Sparkles size={12} /> Paling Direkomendasikan
+                <span
+                  className="absolute -top-3 left-5 inline-flex items-center gap-1 text-surface text-xs font-medium px-3 py-1 rounded-[5px]"
+                  style={{ background: "var(--gold-ink)" }}
+                >
+                  <Sparkles size={12} /> Paling direkomendasikan
                 </span>
               )}
-              <h2 className="text-lg font-semibold text-neutral-900">{pkg.name}</h2>
+              <h2 className="font-serif text-lg text-ink">{pkg.name}</h2>
               <div className="flex items-baseline gap-2 mt-1 mb-3">
                 {pkg.originalPriceLabel && (
-                  <span className="text-sm text-neutral-400 line-through">
+                  <span className="text-sm text-ink-faint line-through">
                     {pkg.originalPriceLabel}
                   </span>
                 )}
-                <span className="text-xl font-bold text-neutral-900">{pkg.priceLabel}</span>
+                <span className="stat-num text-xl">{pkg.priceLabel}</span>
               </div>
-              <ul className="text-sm text-neutral-600 flex flex-col gap-1.5 mb-4">
+              <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-4">
                 {pkg.features.map((f, i) => (
                   <li key={i} className="flex items-center gap-2">
-                    <Check size={14} className="text-green-600 shrink-0" /> {f}
+                    <Check size={14} className="text-pine shrink-0" /> {f}
                   </li>
                 ))}
               </ul>
@@ -74,11 +76,8 @@ export default function BillingPage() {
                 href={waLink(pkg.name)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium transition w-full sm:w-auto ${
-                  pkg.recommended
-                    ? "bg-indigo-600 hover:bg-indigo-700 text-white"
-                    : "bg-neutral-900 hover:bg-neutral-800 text-white"
-                }`}
+                className={`btn w-full sm:w-auto ${pkg.recommended ? "" : "btn-primary"}`}
+                style={pkg.recommended ? { background: "var(--gold-ink)", color: "var(--surface)" } : undefined}
               >
                 Hubungi via WhatsApp
               </a>
@@ -86,8 +85,8 @@ export default function BillingPage() {
           ))}
         </div>
 
-        <p className="text-center text-xs text-neutral-400 mt-8">
-          Pembayaran diverifikasi manual oleh admin. Setelah kamu chat & transfer, akunmu akan
+        <p className="text-center text-xs text-ink-faint mt-8">
+          Pembayaran diverifikasi manual oleh admin. Setelah kamu chat &amp; transfer, akunmu akan
           diaktifkan sesuai paket dalam waktu singkat.
         </p>
       </div>

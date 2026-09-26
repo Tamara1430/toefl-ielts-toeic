@@ -86,16 +86,16 @@ function UsageBar({
   limit: number | null;
 }) {
   if (remaining === null || limit === null || limit === 0) {
-    return <span className="text-neutral-400">—</span>;
+    return <span className="text-ink-faint">—</span>;
   }
   const pct = Math.max(0, Math.min(100, Math.round((remaining / limit) * 100)));
-  const color = pct <= 15 ? "bg-red-500" : pct <= 40 ? "bg-amber-500" : "bg-emerald-500";
+  const color = pct <= 15 ? "bg-red-tint0" : pct <= 40 ? "bg-gold-tint0" : "bg-pine";
   return (
     <div className="flex items-center gap-2">
-      <div className="w-24 h-1.5 rounded-full bg-neutral-100 overflow-hidden shrink-0">
-        <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
+      <div className="w-24 h-1.5 rounded-[7px] bg-[var(--rule)] overflow-hidden shrink-0">
+        <div className={`h-full rounded-[7px] ${color}`} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-xs text-neutral-600 tabular-nums">
+      <span className="text-xs text-ink-soft tabular-nums">
         {remaining.toLocaleString("id-ID")} / {limit.toLocaleString("id-ID")}
       </span>
     </div>
@@ -130,61 +130,61 @@ function GroqUsageCard() {
   const byModel = new Map(rows.map((r) => [r.model, r]));
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4">
+    <div className="rounded-[10px] border border-rule bg-surface p-4">
       <div className="flex items-center justify-between flex-wrap gap-3 mb-1">
         <div className="flex items-center gap-1.5">
-          <Gauge size={15} className="text-indigo-600" />
-          <h3 className="font-medium text-neutral-900 text-sm">Sisa Kuota Groq</h3>
+          <Gauge size={15} className="text-ink" />
+          <h3 className="font-medium text-ink text-sm">Sisa Kuota Groq</h3>
         </div>
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-3 py-1.5 text-xs font-medium hover:border-neutral-400 transition"
+          className="flex items-center gap-1.5 rounded-[7px] border border-rule bg-surface px-3 py-1.5 text-xs font-medium hover:border-rule-strong transition"
         >
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
       </div>
-      <p className="text-xs text-neutral-400 mb-3 max-w-lg">
+      <p className="text-xs text-ink-faint mb-3 max-w-lg">
         Direkam otomatis dari request asli (feedback Speaking, transkrip STT, generate soal &amp;
         suara) — bukan cek terpisah, jadi tidak menambah pemakaian kuota. Pakai ini buat jadwalin
         kapan orang-orang boleh mulai Ujian bareng, biar tidak barengan kena limit.
       </p>
 
-      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+      {error && <p className="text-xs text-red-ink mb-2">{error}</p>}
 
-      <div className="flex flex-col divide-y divide-neutral-100">
+      <div className="flex flex-col divide-y divide-[var(--rule)]">
         {knownModels.map((model) => {
           const row = byModel.get(model);
           return (
             <div key={model} className="py-2.5 first:pt-0 last:pb-0">
               <div className="flex items-center justify-between flex-wrap gap-1 mb-1.5">
-                <p className="text-sm font-medium text-neutral-800">
+                <p className="text-sm font-medium text-ink">
                   {GROQ_MODEL_LABELS[model] ?? model}
                 </p>
                 {row && (
-                  <span className="flex items-center gap-1 text-xs text-neutral-400">
+                  <span className="flex items-center gap-1 text-xs text-ink-faint">
                     <Clock size={11} /> {timeAgo(row.updated_at)}
                   </span>
                 )}
               </div>
               {!row ? (
-                <p className="text-xs text-neutral-400">
+                <p className="text-xs text-ink-faint">
                   Belum ada data — belum ada request ke model ini sejak deploy terakhir.
                 </p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-x-6 gap-y-1 text-xs">
                   <div className="flex items-center justify-between sm:justify-start sm:gap-2">
-                    <span className="text-neutral-400 w-20 shrink-0">Requests</span>
+                    <span className="text-ink-faint w-20 shrink-0">Requests</span>
                     <UsageBar remaining={row.remaining_requests} limit={row.limit_requests} />
                     {row.reset_requests && (
-                      <span className="text-neutral-400 ml-1">(reset {row.reset_requests})</span>
+                      <span className="text-ink-faint ml-1">(reset {row.reset_requests})</span>
                     )}
                   </div>
                   <div className="flex items-center justify-between sm:justify-start sm:gap-2">
-                    <span className="text-neutral-400 w-20 shrink-0">Tokens</span>
+                    <span className="text-ink-faint w-20 shrink-0">Tokens</span>
                     <UsageBar remaining={row.remaining_tokens} limit={row.limit_tokens} />
                     {row.reset_tokens && (
-                      <span className="text-neutral-400 ml-1">(reset {row.reset_tokens})</span>
+                      <span className="text-ink-faint ml-1">(reset {row.reset_tokens})</span>
                     )}
                   </div>
                 </div>
@@ -243,7 +243,7 @@ function useJobProgress(jobId: string | null, active: boolean) {
 function StepBadge({ step }: { step: StepInfo }) {
   if (step.exam && step.section && step.difficulty) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 rounded-full px-3 py-1.5">
+      <span className="inline-flex items-center gap-1.5 text-xs text-ink bg-paper rounded-[7px] px-3 py-1.5">
         <Sparkles size={12} className="animate-pulse" />
         Sedang generate: {EXAM_LABELS[step.exam]} / {SECTION_LABELS[step.section]} /{" "}
         {DIFFICULTY_LABELS[step.difficulty]}
@@ -253,7 +253,7 @@ function StepBadge({ step }: { step: StepInfo }) {
   }
   if (step.questionId) {
     return (
-      <span className="inline-flex items-center gap-1.5 text-xs text-indigo-700 bg-indigo-50 rounded-full px-3 py-1.5">
+      <span className="inline-flex items-center gap-1.5 text-xs text-ink bg-paper rounded-[7px] px-3 py-1.5">
         <Volume2 size={12} className="animate-pulse" />
         Sedang generate suara: {step.title ?? "..."} — {step.speaker} (giliran {step.turnIndex}/
         {step.totalTurns})
@@ -521,7 +521,7 @@ export default function AdminStockPage() {
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">
+        <p className="text-sm text-red-ink bg-red-tint border border-red rounded-[7px] p-3">
           {error}
         </p>
       )}
@@ -533,8 +533,8 @@ export default function AdminStockPage() {
       <div>
         <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
           <div>
-            <h2 className="font-semibold text-neutral-900">Stok Bank Soal</h2>
-            <p className="text-xs text-neutral-400">
+            <h2 className="font-semibold text-ink">Stok Bank Soal</h2>
+            <p className="text-xs text-ink-faint">
               Auto top-up kalau di bawah {minPoolSize} soal per kombinasi (cron tiap jam). Klik
               baris untuk lihat detail soalnya.
             </p>
@@ -542,16 +542,16 @@ export default function AdminStockPage() {
           <button
             onClick={loadStock}
             disabled={loading}
-            className="flex items-center gap-1.5 rounded-full border border-neutral-200 bg-white px-4 py-2 text-sm font-medium hover:border-neutral-400 transition"
+            className="flex items-center gap-1.5 rounded-[7px] border border-rule bg-surface px-4 py-2 text-sm font-medium hover:border-rule-strong transition"
           >
             <RefreshCw size={14} className={loading ? "animate-spin" : ""} /> Refresh
           </button>
         </div>
 
-        <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
+        <div className="rounded-[10px] border border-rule bg-surface overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-neutral-50 text-left text-neutral-500">
+              <tr className="bg-paper text-left text-ink-soft">
                 <th className="px-4 py-2.5 font-medium">Exam</th>
                 <th className="px-4 py-2.5 font-medium">Section</th>
                 <th className="px-4 py-2.5 font-medium">Kesulitan</th>
@@ -559,7 +559,7 @@ export default function AdminStockPage() {
                 <th className="w-8"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-neutral-100">
+            <tbody className="divide-y divide-[var(--rule)]">
               {stock.map((row, i) => {
                 const low = row.count < minPoolSize;
                 const key = comboKey(row.exam, row.section, row.difficulty);
@@ -570,8 +570,8 @@ export default function AdminStockPage() {
                     <tr
                       key={i}
                       onClick={() => setExpandedKey(expanded ? null : key)}
-                      className={`cursor-pointer hover:bg-neutral-50 transition ${
-                        active ? "bg-indigo-50/60" : ""
+                      className={`cursor-pointer hover:bg-paper transition ${
+                        active ? "bg-paper/60" : ""
                       }`}
                     >
                       <td className="px-4 py-2.5">{EXAM_LABELS[row.exam]}</td>
@@ -580,17 +580,17 @@ export default function AdminStockPage() {
                       <td className="px-4 py-2.5 text-right">
                         <span
                           className={`inline-flex items-center gap-1 font-medium ${
-                            low ? "text-amber-600" : "text-neutral-900"
+                            low ? "text-gold-ink" : "text-ink"
                           }`}
                         >
                           {low && <AlertTriangle size={13} />}
                           {row.count}
                           {active && (
-                            <Sparkles size={12} className="text-indigo-500 animate-pulse ml-1" />
+                            <Sparkles size={12} className="text-ink animate-pulse ml-1" />
                           )}
                         </span>
                       </td>
-                      <td className="px-2 text-neutral-300">
+                      <td className="px-2 text-ink-faint">
                         <ChevronDown
                           size={16}
                           className={`transition-transform ${expanded ? "rotate-180" : ""}`}
@@ -599,7 +599,7 @@ export default function AdminStockPage() {
                     </tr>
                     {expanded && (
                       <tr>
-                        <td colSpan={5} className="bg-neutral-50 px-3 py-2">
+                        <td colSpan={5} className="bg-paper px-3 py-2">
                           <AdminQuestionList
                             exam={row.exam}
                             section={row.section}
@@ -614,7 +614,7 @@ export default function AdminStockPage() {
               })}
               {stock.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-neutral-400">
+                  <td colSpan={5} className="px-4 py-8 text-center text-ink-faint">
                     Belum ada data.
                   </td>
                 </tr>
@@ -625,11 +625,11 @@ export default function AdminStockPage() {
       </div>
 
       {/* Generate Umum */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-[10px] border border-rule bg-surface p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 className="font-medium text-neutral-900 text-sm">Generate Umum</h3>
-            <p className="text-xs text-neutral-400">
+            <h3 className="font-medium text-ink text-sm">Generate Umum</h3>
+            <p className="text-xs text-ink-faint">
               Cek semua kombinasi, top-up otomatis yang stoknya di bawah ambang batas.
             </p>
           </div>
@@ -637,7 +637,7 @@ export default function AdminStockPage() {
             <button
               onClick={handleGenerateAll}
               disabled={generatingAll}
-              className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+              className="flex items-center gap-1.5 rounded-[7px] bg-ink hover:bg-[#0f1512] disabled:opacity-50 text-surface px-4 py-2 text-sm font-medium transition"
             >
               {generatingAll ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -649,7 +649,7 @@ export default function AdminStockPage() {
             {generatingAll && allJobId && (
               <button
                 onClick={() => cancelJob(allJobId)}
-                className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+                className="flex items-center gap-1 rounded-[7px] border border-red text-red-ink hover:bg-red-tint px-3 py-2 text-sm font-medium transition"
               >
                 <X size={14} /> Batalkan
               </button>
@@ -661,23 +661,23 @@ export default function AdminStockPage() {
             <StepBadge step={stepAll} />
           </div>
         )}
-        {lastResultAll && <p className="text-xs text-green-700 mt-3">{lastResultAll}</p>}
+        {lastResultAll && <p className="text-xs text-pine mt-3">{lastResultAll}</p>}
       </div>
 
       {/* Generate Spesifik */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-[10px] border border-rule bg-surface p-4">
         <div className="flex items-center gap-1.5 mb-3">
-          <Target size={15} className="text-indigo-600" />
-          <h3 className="font-medium text-neutral-900 text-sm">Generate Spesifik</h3>
+          <Target size={15} className="text-ink" />
+          <h3 className="font-medium text-ink text-sm">Generate Spesifik</h3>
         </div>
-        <p className="text-xs text-neutral-400 mb-3">
+        <p className="text-xs text-ink-faint mb-3">
           Prioritaskan 1 kombinasi tertentu, tanpa nunggu giliran di "Generate Umum".
         </p>
         <div className="grid sm:grid-cols-4 gap-2 mb-3">
           <select
             value={specExam}
             onChange={(e) => setSpecExam(e.target.value as ExamType)}
-            className="rounded-lg border border-neutral-200 px-2.5 py-2 text-sm"
+            className="rounded-[7px] border border-rule px-2.5 py-2 text-sm"
           >
             {exams.map((e) => (
               <option key={e} value={e}>
@@ -688,7 +688,7 @@ export default function AdminStockPage() {
           <select
             value={specSection}
             onChange={(e) => setSpecSection(e.target.value as SectionType)}
-            className="rounded-lg border border-neutral-200 px-2.5 py-2 text-sm"
+            className="rounded-[7px] border border-rule px-2.5 py-2 text-sm"
           >
             {sections.map((s) => (
               <option key={s} value={s}>
@@ -699,7 +699,7 @@ export default function AdminStockPage() {
           <select
             value={specDifficulty}
             onChange={(e) => setSpecDifficulty(e.target.value as Difficulty)}
-            className="rounded-lg border border-neutral-200 px-2.5 py-2 text-sm"
+            className="rounded-[7px] border border-rule px-2.5 py-2 text-sm"
           >
             {difficulties.map((d) => (
               <option key={d} value={d}>
@@ -713,7 +713,7 @@ export default function AdminStockPage() {
             max={20}
             value={specCount}
             onChange={(e) => setSpecCount(Number(e.target.value))}
-            className="rounded-lg border border-neutral-200 px-2.5 py-2 text-sm"
+            className="rounded-[7px] border border-rule px-2.5 py-2 text-sm"
             placeholder="Jumlah"
           />
         </div>
@@ -721,7 +721,7 @@ export default function AdminStockPage() {
           <button
             onClick={handleGenerateSpecific}
             disabled={generatingSpecific}
-            className="flex items-center gap-1.5 rounded-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+            className="flex items-center gap-1.5 rounded-[7px] bg-ink hover:bg-[#0f1512] disabled:opacity-50 text-surface px-4 py-2 text-sm font-medium transition"
           >
             {generatingSpecific ? (
               <Loader2 size={14} className="animate-spin" />
@@ -733,7 +733,7 @@ export default function AdminStockPage() {
           {generatingSpecific && specJobId && (
             <button
               onClick={() => cancelJob(specJobId)}
-              className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+              className="flex items-center gap-1 rounded-[7px] border border-red text-red-ink hover:bg-red-tint px-3 py-2 text-sm font-medium transition"
             >
               <X size={14} /> Batalkan
             </button>
@@ -744,18 +744,18 @@ export default function AdminStockPage() {
             <StepBadge step={stepSpecific} />
           </div>
         )}
-        {lastResultSpecific && <p className="text-xs text-green-700 mt-3">{lastResultSpecific}</p>}
+        {lastResultSpecific && <p className="text-xs text-pine mt-3">{lastResultSpecific}</p>}
       </div>
 
       {/* Generate Voices */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-[10px] border border-rule bg-surface p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-1.5">
-              <Volume2 size={15} className="text-indigo-600" />
-              <h3 className="font-medium text-neutral-900 text-sm">Generate Voices</h3>
+              <Volume2 size={15} className="text-ink" />
+              <h3 className="font-medium text-ink text-sm">Generate Voices</h3>
             </div>
-            <p className="text-xs text-neutral-400 mt-1 max-w-md">
+            <p className="text-xs text-ink-faint mt-1 max-w-md">
               Cek semua soal listening yang audionya belum ter-cache (soal lama / gagal saat
               generate), lalu buatkan audionya. Aman dijalankan berkali-kali.
             </p>
@@ -764,7 +764,7 @@ export default function AdminStockPage() {
             <button
               onClick={handleGenerateVoices}
               disabled={generatingVoices}
-              className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition"
+              className="flex items-center gap-1.5 rounded-[7px] bg-ink hover:bg-[#0f1512] disabled:opacity-50 text-surface px-4 py-2 text-sm font-medium transition"
             >
               {generatingVoices ? (
                 <Loader2 size={14} className="animate-spin" />
@@ -776,7 +776,7 @@ export default function AdminStockPage() {
             {generatingVoices && voicesJobId && (
               <button
                 onClick={() => cancelJob(voicesJobId)}
-                className="flex items-center gap-1 rounded-full border border-red-200 text-red-600 hover:bg-red-50 px-3 py-2 text-sm font-medium transition"
+                className="flex items-center gap-1 rounded-[7px] border border-red text-red-ink hover:bg-red-tint px-3 py-2 text-sm font-medium transition"
               >
                 <X size={14} /> Batalkan
               </button>
@@ -791,16 +791,16 @@ export default function AdminStockPage() {
         )}
 
         {voiceProgress && (
-          <p className="text-xs text-neutral-600 mt-3">
+          <p className="text-xs text-ink-soft mt-3">
             Diproses {voiceProgress.processed} dari {voiceProgress.total} soal listening yang
             butuh audio.
             {!generatingVoices && voiceProgress.total > 0 && voiceProgress.processed === 0 && (
-              <span className="text-green-700"> Semua soal listening sudah punya audio ✓</span>
+              <span className="text-pine"> Semua soal listening sudah punya audio ✓</span>
             )}
           </p>
         )}
         {voiceErrors.length > 0 && (
-          <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+          <div className="mt-2 text-xs text-red-ink bg-red-tint border border-red rounded-[7px] p-2 max-h-32 overflow-y-auto">
             {voiceErrors.map((e, i) => (
               <p key={i}>{e}</p>
             ))}
@@ -809,14 +809,14 @@ export default function AdminStockPage() {
       </div>
 
       {/* Fix Gender (migration for old listening questions) */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-[10px] border border-rule bg-surface p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <div className="flex items-center gap-1.5">
-              <Wand2 size={15} className="text-indigo-600" />
-              <h3 className="font-medium text-neutral-900 text-sm">Perbaiki Gender Suara</h3>
+              <Wand2 size={15} className="text-ink" />
+              <h3 className="font-medium text-ink text-sm">Perbaiki Gender Suara</h3>
             </div>
-            <p className="text-xs text-neutral-400 mt-1 max-w-md">
+            <p className="text-xs text-ink-faint mt-1 max-w-md">
               Untuk soal listening lama yang dibuat sebelum sistem gender-aware ada (kadang suara
               tidak sesuai gender karakter, misal "Lisa" tapi suaranya pria). Teks soal tidak
               diubah — cuma gender diklasifikasi ulang (murah) lalu audionya di-generate ulang
@@ -826,7 +826,7 @@ export default function AdminStockPage() {
           <button
             onClick={handleFixGender}
             disabled={fixingGender}
-            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
+            className="flex items-center gap-1.5 rounded-[7px] bg-ink hover:bg-[#0f1512] disabled:opacity-50 text-surface px-4 py-2 text-sm font-medium transition shrink-0"
           >
             {fixingGender ? <Loader2 size={14} className="animate-spin" /> : <Wand2 size={14} />}
             {fixingGender ? "Memproses..." : "Perbaiki Gender Suara"}
@@ -834,16 +834,16 @@ export default function AdminStockPage() {
         </div>
 
         {genderCountLoading && !genderProgress && (
-          <p className="text-xs text-neutral-400 mt-3">Mengecek jumlah yang perlu diperbaiki...</p>
+          <p className="text-xs text-ink-faint mt-3">Mengecek jumlah yang perlu diperbaiki...</p>
         )}
         {genderProgress && (
-          <p className="text-xs text-neutral-600 mt-3">
+          <p className="text-xs text-ink-soft mt-3">
             {fixingGender ? (
               <>Diproses {genderProgress.processed} dari {genderProgress.total} soal listening yang butuh perbaikan gender.</>
             ) : genderProgress.total === 0 ? (
-              <span className="text-green-700">Semua soal listening sudah punya data gender ✓</span>
+              <span className="text-pine">Semua soal listening sudah punya data gender ✓</span>
             ) : genderProgress.processed >= genderProgress.total ? (
-              <span className="text-green-700">
+              <span className="text-pine">
                 {genderProgress.processed} soal berhasil diperbaiki ✓
               </span>
             ) : (
@@ -852,7 +852,7 @@ export default function AdminStockPage() {
           </p>
         )}
         {genderErrors.length > 0 && (
-          <div className="mt-2 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+          <div className="mt-2 text-xs text-red-ink bg-red-tint border border-red rounded-[7px] p-2 max-h-32 overflow-y-auto">
             {genderErrors.map((e, i) => (
               <p key={i}>{e}</p>
             ))}
@@ -861,11 +861,11 @@ export default function AdminStockPage() {
       </div>
 
       {/* Exam Pool (Ujian mode) */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="rounded-[10px] border border-rule bg-surface p-4">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h3 className="font-medium text-neutral-900 text-sm">Pool Soal Ujian (Bulanan)</h3>
-            <p className="text-xs text-neutral-400 mt-1 max-w-md">
+            <h3 className="font-medium text-ink text-sm">Pool Soal Ujian (Bulanan)</h3>
+            <p className="text-xs text-ink-faint mt-1 max-w-md">
               Generate/lengkapi soal tingkat Mahir untuk mode Ujian bulan ini. Ini juga jalan
               otomatis tiap bulan lewat cron — tombol ini buat trigger manual (misal pool
               bulan ini belum sempat ter-generate).
@@ -874,7 +874,7 @@ export default function AdminStockPage() {
           <button
             onClick={handleGenerateExamPool}
             disabled={generatingExamPool}
-            className="flex items-center gap-1.5 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-4 py-2 text-sm font-medium transition shrink-0"
+            className="flex items-center gap-1.5 rounded-[7px] bg-ink hover:bg-[#0f1512] disabled:opacity-50 text-surface px-4 py-2 text-sm font-medium transition shrink-0"
           >
             {generatingExamPool ? (
               <Loader2 size={14} className="animate-spin" />
@@ -884,8 +884,8 @@ export default function AdminStockPage() {
             {generatingExamPool ? "Generating..." : "Generate Pool Ujian"}
           </button>
         </div>
-        {examPoolResult && <p className="text-xs text-green-700 mt-3">{examPoolResult}</p>}
-        {examPoolError && <p className="text-xs text-red-600 mt-3">{examPoolError}</p>}
+        {examPoolResult && <p className="text-xs text-pine mt-3">{examPoolResult}</p>}
+        {examPoolError && <p className="text-xs text-red-ink mt-3">{examPoolError}</p>}
       </div>
     </div>
   );

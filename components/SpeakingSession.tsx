@@ -93,34 +93,31 @@ export default function SpeakingSession({
 
   return (
     <div className="flex flex-col gap-5 mt-4">
-      <div className="rounded-xl border border-neutral-200 p-4 bg-neutral-50">
-        <p className="whitespace-pre-wrap">{task.prompt}</p>
+      <div className="card p-4">
+        <p className="whitespace-pre-wrap text-ink">{task.prompt}</p>
         {task.stimulus && (
-          <div className="mt-3 rounded-lg bg-white border border-neutral-200 p-3 text-sm text-neutral-700 whitespace-pre-wrap">
+          <div className="mt-3 rounded-[7px] bg-paper border border-rule p-3 text-sm text-ink-soft whitespace-pre-wrap">
             {task.stimulus}
           </div>
         )}
-        <div className="flex gap-4 text-xs text-neutral-500 mt-3">
-          <span>Persiapan: {task.prepSeconds}s</span>
-          <span>Waktu jawab: {task.responseSeconds}s</span>
+        <div className="flex gap-4 text-xs text-ink-soft mt-3">
+          <span>Persiapan: <span className="stat-num">{task.prepSeconds}s</span></span>
+          <span>Waktu jawab: <span className="stat-num">{task.responseSeconds}s</span></span>
         </div>
       </div>
 
       {!readyToRecord ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex flex-col gap-3">
-          <p className="flex items-center gap-2 text-sm font-medium text-amber-800">
+        <div className="card p-4 flex flex-col gap-3" style={{ borderColor: "var(--gold)" }}>
+          <p className="flex items-center gap-2 text-sm font-medium text-gold-ink">
             <ShieldAlert size={16} /> Pastikan kamu sudah siap sebelum merekam
           </p>
-          <p className="text-sm text-neutral-700">
-            Baca dulu soal & instruksi di atas sampai benar-benar paham. Begitu kamu mulai
+          <p className="text-sm text-ink-soft">
+            Baca dulu soal &amp; instruksi di atas sampai benar-benar paham. Begitu kamu mulai
             rekam, sesi ini dianggap terpakai — sesi Speaking jumlahnya terbatas, jadi jangan
             sampai kepencet tidak sengaja.
           </p>
-          <button
-            onClick={() => setReadyToRecord(true)}
-            className="flex items-center justify-center gap-2 rounded-full bg-neutral-900 hover:bg-neutral-800 text-white px-5 py-2.5 font-medium transition w-fit"
-          >
-            <Mic size={16} /> Saya Sudah Siap, Mulai Rekam
+          <button onClick={() => setReadyToRecord(true)} className="btn btn-primary w-fit">
+            <Mic size={16} /> Saya sudah siap, mulai rekam
           </button>
         </div>
       ) : (
@@ -128,45 +125,47 @@ export default function SpeakingSession({
       )}
 
       {transcript && (
-        <div className="rounded-xl border border-neutral-200 p-4">
-          <p className="text-sm font-medium text-neutral-500 mb-1">Transkrip jawabanmu:</p>
-          <p className="italic">&ldquo;{transcript}&rdquo;</p>
+        <div className="card p-4">
+          <p className="text-sm font-medium text-ink-soft mb-1">Transkrip jawabanmu:</p>
+          <p className="italic text-ink">&ldquo;{transcript}&rdquo;</p>
         </div>
       )}
 
       {loadingFeedback && (
-        <p className="flex items-center gap-2 text-sm text-neutral-500">
+        <p className="flex items-center gap-2 text-sm text-ink-soft">
           <Loader2 size={16} className="animate-spin" /> AI sedang menilai jawabanmu...
         </p>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-ink">{error}</p>}
 
       {feedback && (
-        <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 flex flex-col gap-3">
+        <div className="card p-4 flex flex-col gap-3" style={{ borderColor: "var(--red)" }}>
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-indigo-700">{feedback.score}%</span>
-            <span className="text-sm text-neutral-600">{feedback.scoreScaleNote}</span>
+            <span className="stat-num text-2xl" style={{ color: "var(--red-ink)" }}>
+              {feedback.score}%
+            </span>
+            <span className="text-sm text-ink-soft">{feedback.scoreScaleNote}</span>
           </div>
           <div>
-            <p className="font-medium text-sm mb-1">Kelebihan</p>
-            <ul className="list-disc list-inside text-sm text-neutral-700">
+            <p className="font-medium text-sm text-ink mb-1">Kelebihan</p>
+            <ul className="list-disc list-inside text-sm text-ink-soft">
               {feedback.strengths.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="font-medium text-sm mb-1">Yang perlu diperbaiki</p>
-            <ul className="list-disc list-inside text-sm text-neutral-700">
+            <p className="font-medium text-sm text-ink mb-1">Yang perlu diperbaiki</p>
+            <ul className="list-disc list-inside text-sm text-ink-soft">
               {feedback.improvements.map((s, i) => (
                 <li key={i}>{s}</li>
               ))}
             </ul>
           </div>
           <div>
-            <p className="font-medium text-sm mb-1">Contoh jawaban yang lebih baik</p>
-            <p className="text-sm text-neutral-700 italic">{feedback.correctedSample}</p>
+            <p className="font-medium text-sm text-ink mb-1">Contoh jawaban yang lebih baik</p>
+            <p className="text-sm text-ink-soft italic">{feedback.correctedSample}</p>
           </div>
         </div>
       )}

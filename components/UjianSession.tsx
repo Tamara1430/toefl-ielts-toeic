@@ -126,7 +126,7 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-neutral-400 text-sm py-12 justify-center">
+      <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
         <Loader2 size={18} className="animate-spin" /> Menyiapkan sesi ujian...
       </div>
     );
@@ -134,21 +134,21 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
 
   if (notReadyMessage) {
     return (
-      <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-center">
-        <FileWarning className="mx-auto text-amber-500 mb-3" size={32} />
-        <h3 className="font-semibold text-neutral-900 mb-1">Ujian belum siap</h3>
-        <p className="text-sm text-neutral-600">{notReadyMessage}</p>
+      <div className="card p-6 text-center" style={{ borderColor: "var(--gold)" }}>
+        <FileWarning className="mx-auto text-gold-ink mb-3" size={28} />
+        <h3 className="font-serif text-lg text-ink mb-1">Ujian belum siap</h3>
+        <p className="text-sm text-ink-soft">{notReadyMessage}</p>
       </div>
     );
   }
 
   if (error) {
-    return <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>;
+    return <p className="text-sm text-red-ink bg-red-tint border border-red rounded-[7px] p-3">{error}</p>;
   }
 
   if (submitting) {
     return (
-      <div className="flex items-center gap-2 text-neutral-400 text-sm py-12 justify-center">
+      <div className="flex items-center gap-2 text-ink-faint text-sm py-12 justify-center">
         <Loader2 size={18} className="animate-spin" /> Menghitung hasil & membuat sertifikat...
       </div>
     );
@@ -159,13 +159,14 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-neutral-500">
-          {EXAM_LABELS[exam]} — Langkah {stepIndex + 1} dari {totalSteps}
+        <p className="text-sm text-ink-soft">
+          {EXAM_LABELS[exam]} — Langkah <span className="stat-num">{stepIndex + 1}</span> dari{" "}
+          <span className="stat-num">{totalSteps}</span>
         </p>
-        <div className="w-32 h-1.5 bg-neutral-100 rounded-full overflow-hidden">
+        <div className="w-32 h-1.5 bg-[var(--rule)] rounded-full overflow-hidden">
           <div
-            className="h-full bg-indigo-600 rounded-full transition-all"
-            style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
+            className="h-full rounded-full transition-all"
+            style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%`, background: "var(--red)" }}
           />
         </div>
       </div>
@@ -200,7 +201,7 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
 
       {currentStep.kind === "speaking" && (
         <div key={`s-${currentStep.index}`}>
-          <h2 className="text-xl font-semibold mb-3">
+          <h2 className="font-serif text-lg text-ink mb-3">
             {session.speaking[currentStep.index].payload.title}
           </h2>
           <SpeakingSession
@@ -221,9 +222,9 @@ export default function UjianSession({ exam }: { exam: ExamType }) {
                 if (isLastStep) handleSubmitAll(readingResults, listeningResults, speakingScores);
                 else goNext();
               }}
-              className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
+              className="btn btn-primary mt-5"
             >
-              {isLastStep ? "Selesai & Lihat Sertifikat" : "Lanjut"} <ArrowRight size={16} />
+              {isLastStep ? "Selesai & lihat sertifikat" : "Lanjut"} <ArrowRight size={16} />
             </button>
           )}
         </div>
@@ -244,8 +245,8 @@ function ReadingStep({
   const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-3">{item.payload.title}</h2>
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 leading-relaxed whitespace-pre-wrap mb-2">
+      <h2 className="font-serif text-lg text-ink mb-3">{item.payload.title}</h2>
+      <div className="card p-4 leading-relaxed whitespace-pre-wrap mb-2">
         {item.payload.passage}
       </div>
       <McqQuestions
@@ -253,11 +254,8 @@ function ReadingStep({
         onComplete={(correct, total) => setResult({ correct, total })}
       />
       {result && (
-        <button
-          onClick={() => onDone(result.correct, result.total)}
-          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
-        >
-          {isLast ? "Lanjut" : "Lanjut ke Soal Berikutnya"} <ArrowRight size={16} />
+        <button onClick={() => onDone(result.correct, result.total)} className="btn btn-primary mt-5">
+          {isLast ? "Lanjut" : "Lanjut ke soal berikutnya"} <ArrowRight size={16} />
         </button>
       )}
     </div>
@@ -276,8 +274,8 @@ function ListeningStep({
   const [result, setResult] = useState<{ correct: number; total: number } | null>(null);
   return (
     <div>
-      <h2 className="text-xl font-semibold mb-3">{item.payload.title}</h2>
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 mb-2">
+      <h2 className="font-serif text-lg text-ink mb-3">{item.payload.title}</h2>
+      <div className="card p-4 mb-2">
         <DialoguePlayer turns={item.payload.turns} />
       </div>
       <McqQuestions
@@ -285,11 +283,8 @@ function ListeningStep({
         onComplete={(correct, total) => setResult({ correct, total })}
       />
       {result && (
-        <button
-          onClick={() => onDone(result.correct, result.total)}
-          className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2.5 font-medium transition mt-5"
-        >
-          {isLast ? "Lanjut" : "Lanjut ke Soal Berikutnya"} <ArrowRight size={16} />
+        <button onClick={() => onDone(result.correct, result.total)} className="btn btn-primary mt-5">
+          {isLast ? "Lanjut" : "Lanjut ke soal berikutnya"} <ArrowRight size={16} />
         </button>
       )}
     </div>

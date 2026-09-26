@@ -32,8 +32,8 @@ export default function McqQuestions({
   return (
     <div className="flex flex-col gap-6 mt-6">
       {questions.map((q, qi) => (
-        <div key={qi} className="rounded-xl border border-neutral-200 p-4">
-          <p className="font-medium mb-3">
+        <div key={qi} className="card p-4">
+          <p className="font-medium text-ink mb-3">
             {qi + 1}. {q.question}
           </p>
           <div className="flex flex-col gap-2">
@@ -47,23 +47,31 @@ export default function McqQuestions({
                   key={oi}
                   disabled={submitted}
                   onClick={() => setAnswers((prev) => ({ ...prev, [qi]: oi }))}
-                  className={`text-left rounded-lg border px-4 py-2.5 transition flex items-center justify-between gap-2
-                    ${isSelected && !submitted ? "border-indigo-500 bg-indigo-50" : "border-neutral-200"}
-                    ${isCorrect ? "border-green-500 bg-green-50" : ""}
-                    ${isWrongSelected ? "border-red-500 bg-red-50" : ""}
-                    ${!submitted ? "hover:border-indigo-300" : "cursor-default"}
+                  className={`text-left rounded-[7px] border px-4 py-2.5 transition-colors flex items-center justify-between gap-2
+                    ${isSelected && !submitted ? "border-ink bg-[var(--paper)]" : "border-rule-strong"}
+                    ${isCorrect ? "border-pine" : ""}
+                    ${isCorrect ? "" : ""}
+                    ${isWrongSelected ? "border-red" : ""}
+                    ${!submitted ? "hover:border-ink" : "cursor-default"}
                   `}
+                  style={
+                    isCorrect
+                      ? { background: "var(--pine-tint)" }
+                      : isWrongSelected
+                      ? { background: "var(--red-tint)" }
+                      : undefined
+                  }
                 >
-                  <span>{opt}</span>
-                  {isCorrect && <CheckCircle2 size={18} className="text-green-600 shrink-0" />}
-                  {isWrongSelected && <XCircle size={18} className="text-red-600 shrink-0" />}
+                  <span className="text-sm text-ink">{opt}</span>
+                  {isCorrect && <CheckCircle2 size={18} className="text-pine shrink-0" />}
+                  {isWrongSelected && <XCircle size={18} className="text-red shrink-0" />}
                 </button>
               );
             })}
           </div>
           {submitted && (
-            <p className="text-sm text-neutral-600 mt-3 bg-neutral-50 rounded-lg p-3">
-              <span className="font-medium">Penjelasan: </span>
+            <p className="text-sm text-ink-soft mt-3 bg-paper rounded-[7px] p-3 border border-rule">
+              <span className="font-medium text-ink">Penjelasan: </span>
               {q.explanation}
             </p>
           )}
@@ -79,13 +87,16 @@ export default function McqQuestions({
             onComplete?.(score, questions.length);
           }}
           disabled={Object.keys(answers).length < questions.length}
-          className="rounded-full bg-neutral-900 hover:bg-neutral-800 disabled:opacity-40 text-white px-6 py-2.5 font-medium w-fit transition"
+          className="btn btn-primary w-fit"
         >
-          Cek Jawaban
+          Cek jawaban
         </button>
       ) : (
-        <div className="rounded-xl bg-indigo-50 border border-indigo-200 px-4 py-3 font-medium">
-          Skor kamu: {score} / {questions.length}
+        <div
+          className="rounded-[7px] border px-4 py-3 font-medium text-ink"
+          style={{ background: "var(--gold-tint)", borderColor: "var(--gold)" }}
+        >
+          Skor kamu: <span className="stat-num">{score} / {questions.length}</span>
         </div>
       )}
     </div>

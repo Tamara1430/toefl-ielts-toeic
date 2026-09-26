@@ -16,9 +16,9 @@ import {
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 const SECTION_COLORS: Record<SectionType, string> = {
-  reading: "#4f46e5",
-  listening: "#059669",
-  speaking: "#d97706",
+  reading: "#2f5b46", // pine
+  listening: "#b8862e", // gold
+  speaking: "#b23a2e", // red
 };
 
 function scoreOf(record: HistoryRecord): number | null {
@@ -84,7 +84,7 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
 
   if (history.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-neutral-300 p-8 text-center text-neutral-400 text-sm">
+      <div className="rounded-[7px] border border-dashed border-rule-strong p-8 text-center text-ink-faint text-sm">
         Belum ada riwayat latihan. Kerjakan beberapa sesi Reading, Listening, atau Speaking
         dulu — progressmu akan otomatis muncul di sini.
       </div>
@@ -103,17 +103,17 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
             : null;
           const trend = trendFor(records);
           return (
-            <div key={s} className="rounded-xl border border-neutral-200 bg-white p-4">
-              <p className="text-sm text-neutral-500">{SECTION_LABELS[s]}</p>
+            <div key={s} className="card p-4">
+              <p className="text-sm text-ink-soft">{SECTION_LABELS[s]}</p>
               <div className="flex items-baseline gap-2 mt-1">
-                <span className="text-2xl font-bold text-neutral-900">
+                <span className="stat-num text-2xl">
                   {avg !== null ? `${avg}%` : "—"}
                 </span>
-                {trend === "up" && <TrendingUp size={18} className="text-green-600" />}
-                {trend === "down" && <TrendingDown size={18} className="text-red-600" />}
-                {trend === "flat" && <Minus size={18} className="text-neutral-400" />}
+                {trend === "up" && <TrendingUp size={18} className="text-pine" />}
+                {trend === "down" && <TrendingDown size={18} className="text-red" />}
+                {trend === "flat" && <Minus size={18} className="text-ink-faint" />}
               </div>
-              <p className="text-xs text-neutral-400 mt-1">
+              <p className="text-xs text-ink-soft mt-1">
                 {records.length} sesi dikerjakan
                 {trend === "up" && " • membaik dibanding sesi awal"}
                 {trend === "down" && " • menurun dibanding sesi awal"}
@@ -124,14 +124,14 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
       </div>
 
       {/* Progress chart */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
-        <p className="text-sm font-medium mb-3">Grafik perkembangan skor (%)</p>
+      <div className="card p-4">
+        <p className="text-sm font-medium text-ink mb-3">Grafik perkembangan skor (%)</p>
         <div style={{ width: "100%", height: 260 }}>
           <ResponsiveContainer>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-              <YAxis domain={[0, 100]} tick={{ fontSize: 12 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#ddd8c9" />
+              <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#5b6259" }} />
+              <YAxis domain={[0, 100]} tick={{ fontSize: 12, fill: "#5b6259" }} />
               <Tooltip />
               <Legend />
               <Line
@@ -167,11 +167,11 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
       </div>
 
       {/* Recent sessions list */}
-      <div className="rounded-xl border border-neutral-200 bg-white p-4">
+      <div className="card p-4">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-medium">Riwayat sesi terbaru</p>
+          <p className="text-sm font-medium text-ink">Riwayat sesi terbaru</p>
         </div>
-        <div className="flex flex-col divide-y divide-neutral-100">
+        <div className="flex flex-col divide-y divide-[var(--rule)]">
           {history
             .slice()
             .sort((a, b) => b.timestamp - a.timestamp)
@@ -179,18 +179,18 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
             .map((r) => (
               <div key={r.id} className="py-2.5 flex items-center justify-between text-sm gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium">{SECTION_LABELS[r.section]}</p>
-                  <p className="text-neutral-400 text-xs truncate">
+                  <p className="font-medium text-ink">{SECTION_LABELS[r.section]}</p>
+                  <p className="text-ink-faint text-xs truncate">
                     {new Date(r.timestamp).toLocaleString("id-ID")}
                     {r.title ? ` • ${r.title}` : ""}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="font-semibold">
+                  <p className="stat-num">
                     {r.section === "speaking" ? `${r.speakingScore}%` : `${r.correct}/${r.total}`}
                   </p>
                   {r.section === "speaking" && r.speakingScale && (
-                    <p className="text-xs text-neutral-400 max-w-[160px] truncate">
+                    <p className="text-xs text-ink-faint max-w-[160px] truncate">
                       {r.speakingScale}
                     </p>
                   )}
@@ -200,7 +200,7 @@ export default function SessionHistory({ exam }: { exam: ExamType }) {
         </div>
       </div>
 
-      <p className="text-xs text-neutral-400">
+      <p className="text-xs text-ink-faint">
         Riwayat ini tersimpan di akunmu (bukan cuma browser ini), jadi tetap ada walau ganti
         HP atau browser.
       </p>

@@ -34,9 +34,9 @@ interface ProfileRow {
 }
 
 const LEVEL_BADGE: Record<EntitlementLevel, { label: string; className: string }> = {
-  free: { label: "Free", className: "bg-neutral-100 text-neutral-500 border-neutral-200" },
-  ujian: { label: "Ujian", className: "bg-indigo-50 text-indigo-600 border-indigo-200" },
-  premium: { label: "Premium", className: "bg-emerald-50 text-emerald-600 border-emerald-200" },
+  free: { label: "Free", className: "tag" },
+  ujian: { label: "Ujian", className: "tag tag-pine" },
+  premium: { label: "Premium", className: "tag tag-gold" },
 };
 
 export default function ProfilPage() {
@@ -106,71 +106,61 @@ export default function ProfilPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <Loader2 className="animate-spin text-neutral-400" size={24} />
+      <main className="min-h-screen flex items-center justify-center bg-paper">
+        <Loader2 className="animate-spin text-ink-faint" size={22} />
       </main>
     );
   }
 
   if (!profile) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-neutral-50 px-5">
-        <p className="text-neutral-500 text-sm">Belum login.</p>
+      <main className="min-h-screen flex items-center justify-center bg-paper px-5">
+        <p className="text-ink-soft text-sm">Belum login.</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-neutral-50 pb-24">
-      <div className="max-w-3xl mx-auto px-5 pt-8">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <p className="text-sm text-neutral-500">Akun</p>
-            <h1 className="text-2xl font-bold text-neutral-900">Profil</h1>
-          </div>
-          <LogoutButton className="text-xs text-neutral-400 hover:text-red-600 transition" />
+    <main className="min-h-screen bg-paper pb-24">
+      <div className="page-head flex items-start justify-between !pb-4">
+        <div>
+          <p className="text-sm text-ink-soft">Akun</p>
+          <h1 className="page-head__title">Profil</h1>
         </div>
+        <LogoutButton className="text-xs text-ink-faint hover:text-red transition-colors" />
+      </div>
 
+      <div className="container-page px-5 pt-6">
         {/* Account info */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 mb-4">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-9 h-9 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
-              <Mail size={16} className="text-indigo-600" />
-            </div>
+        <div className="card p-5 mb-4">
+          <div className="flex items-center gap-3 mb-4">
+            <Mail size={17} className="text-ink-soft shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs text-neutral-400">Email</p>
-              <p className="text-sm font-medium text-neutral-900 truncate">{profile.email}</p>
+              <p className="text-xs text-ink-faint">Email</p>
+              <p className="text-sm font-medium text-ink truncate">{profile.email}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 mb-4">
-            <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                profile.is_active ? "bg-emerald-50" : "bg-amber-50"
-              }`}
-            >
-              {profile.is_active ? (
-                <ShieldCheck size={16} className="text-emerald-600" />
-              ) : (
-                <ShieldAlert size={16} className="text-amber-600" />
-              )}
-            </div>
+          <div className="flex items-center gap-3 mb-4">
+            {profile.is_active ? (
+              <ShieldCheck size={17} className="text-pine shrink-0" />
+            ) : (
+              <ShieldAlert size={17} className="text-gold-ink shrink-0" />
+            )}
             <div className="min-w-0">
-              <p className="text-xs text-neutral-400">Status akun</p>
-              <p className="text-sm font-medium text-neutral-900">
+              <p className="text-xs text-ink-faint">Status akun</p>
+              <p className="text-sm font-medium text-ink">
                 {profile.is_active ? "Aktif" : "Belum aktif"}
               </p>
             </div>
           </div>
 
           {profile.paid_until && (
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-full bg-neutral-50 flex items-center justify-center shrink-0">
-                <CalendarDays size={16} className="text-neutral-500" />
-              </div>
+            <div className="flex items-center gap-3">
+              <CalendarDays size={17} className="text-ink-soft shrink-0" />
               <div className="min-w-0">
-                <p className="text-xs text-neutral-400">Berlaku sampai</p>
-                <p className="text-sm font-medium text-neutral-900">
+                <p className="text-xs text-ink-faint">Berlaku sampai</p>
+                <p className="text-sm font-medium text-ink">
                   {new Date(profile.paid_until).toLocaleDateString("id-ID", {
                     day: "2-digit",
                     month: "long",
@@ -183,24 +173,27 @@ export default function ProfilPage() {
         </div>
 
         {/* Current package */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5 mb-4">
+        <div className="card p-5 mb-4">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
-              <Package size={16} className="text-neutral-500" />
-              <h2 className="font-semibold text-neutral-900">Paket Kamu</h2>
+              <Package size={16} className="text-ink-soft" />
+              <h2 className="font-serif text-base text-ink">Paket kamu</h2>
             </div>
             <Link
               href="/billing"
-              className="inline-flex items-center gap-1 text-xs text-indigo-600 font-medium hover:text-indigo-800"
+              className="inline-flex items-center gap-1 text-xs text-ink font-medium underline underline-offset-2"
             >
               Upgrade <ArrowRight size={12} />
             </Link>
           </div>
 
           {isUltimate && (
-            <div className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-50 to-violet-50 border border-indigo-200 px-3 py-2 mb-3">
-              <Crown size={16} className="text-indigo-600" />
-              <span className="text-sm font-semibold text-indigo-700">Ultimate — akses penuh</span>
+            <div
+              className="flex items-center gap-2 rounded-[7px] px-3 py-2 mb-3 border"
+              style={{ background: "var(--gold-tint)", borderColor: "var(--gold)" }}
+            >
+              <Crown size={16} className="text-gold-ink" />
+              <span className="text-sm font-semibold text-gold-ink">Ultimate — akses penuh</span>
             </div>
           )}
 
@@ -211,14 +204,10 @@ export default function ProfilPage() {
               return (
                 <div
                   key={exam}
-                  className="flex items-center justify-between rounded-xl border border-neutral-100 px-3 py-2.5"
+                  className="flex items-center justify-between rounded-[7px] border border-rule px-3 py-2.5"
                 >
-                  <span className="text-sm font-medium text-neutral-800">{EXAM_LABELS[exam]}</span>
-                  <span
-                    className={`text-xs font-medium px-2.5 py-1 rounded-full border ${badge.className}`}
-                  >
-                    {badge.label}
-                  </span>
+                  <span className="text-sm font-medium text-ink">{EXAM_LABELS[exam]}</span>
+                  <span className={badge.className}>{badge.label}</span>
                 </div>
               );
             })}
@@ -226,10 +215,10 @@ export default function ProfilPage() {
         </div>
 
         {/* Change password */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-5">
+        <div className="card p-5">
           <div className="flex items-center gap-2 mb-4">
-            <KeyRound size={16} className="text-neutral-500" />
-            <h2 className="font-semibold text-neutral-900">Ganti Password</h2>
+            <KeyRound size={16} className="text-ink-soft" />
+            <h2 className="font-serif text-base text-ink">Ganti password</h2>
           </div>
 
           <form onSubmit={handleChangePassword} className="flex flex-col gap-3">
@@ -240,12 +229,12 @@ export default function ProfilPage() {
                 onChange={(e) => setNewPassword(e.target.value)}
                 placeholder="Password baru"
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 pr-10 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+                className="field pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPw((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-faint hover:text-ink"
                 tabIndex={-1}
               >
                 {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -258,16 +247,16 @@ export default function ProfilPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Konfirmasi password baru"
               autoComplete="new-password"
-              className="w-full rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="field"
             />
 
             {pwError && (
-              <div className="flex items-center gap-1.5 text-xs text-red-600">
+              <div className="flex items-center gap-1.5 text-xs text-red-ink">
                 <AlertCircle size={14} /> {pwError}
               </div>
             )}
             {pwSuccess && (
-              <div className="flex items-center gap-1.5 text-xs text-emerald-600">
+              <div className="flex items-center gap-1.5 text-xs text-pine">
                 <CheckCircle2 size={14} /> Password berhasil diganti.
               </div>
             )}
@@ -275,10 +264,10 @@ export default function ProfilPage() {
             <button
               type="submit"
               disabled={pwSaving || !newPassword || !confirmPassword}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white px-5 py-2.5 text-sm font-medium transition"
+              className="btn btn-primary w-fit"
             >
               {pwSaving && <Loader2 size={14} className="animate-spin" />}
-              Simpan Password Baru
+              Simpan password baru
             </button>
           </form>
         </div>

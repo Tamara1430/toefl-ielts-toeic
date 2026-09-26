@@ -27,10 +27,10 @@ interface Props {
 const VOLUME_BOOST = 3.5;
 
 const SPEAKER_BADGE_COLORS = [
-  "bg-indigo-100 text-indigo-700 border-indigo-200",
-  "bg-emerald-100 text-emerald-700 border-emerald-200",
-  "bg-amber-100 text-amber-700 border-amber-200",
-  "bg-rose-100 text-rose-700 border-rose-200",
+  "border-[var(--pine)] text-[var(--pine)] bg-[var(--pine-tint)]",
+  "border-[var(--gold)] text-[var(--gold-ink)] bg-[var(--gold-tint)]",
+  "border-[var(--red)] text-[var(--red-ink)] bg-[var(--red-tint)]",
+  "border-rule-strong text-ink-soft bg-paper",
 ];
 
 // Gender-aware voice assignment (matches lib/audioGeneration.ts's server-side
@@ -193,44 +193,37 @@ export default function DialoguePlayer({ turns }: Props) {
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 flex-wrap">
         {!playing ? (
-          <button
-            onClick={handlePlay}
-            disabled={loading}
-            className="flex items-center gap-2 rounded-full bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-2.5 font-medium transition"
-          >
-            {loading ? <Loader2 size={18} className="animate-spin" /> : <Volume2 size={18} />}
-            {loading ? "Menyiapkan audio..." : "Putar Percakapan"}
+          <button onClick={handlePlay} disabled={loading} className="btn btn-primary">
+            {loading ? <Loader2 size={16} className="animate-spin" /> : <Volume2 size={16} />}
+            {loading ? "Menyiapkan audio..." : "Putar percakapan"}
           </button>
         ) : (
-          <button
-            onClick={handleStop}
-            className="flex items-center gap-2 rounded-full bg-neutral-800 hover:bg-neutral-900 text-white px-5 py-2.5 font-medium transition"
-          >
-            <Square size={16} /> Berhenti
+          <button onClick={handleStop} className="btn btn-outline">
+            <Square size={15} /> Berhenti
           </button>
         )}
 
         {playing && activeSpeaker && (
-          <span className="flex items-center gap-1.5 text-sm text-neutral-600 bg-neutral-100 rounded-full px-3 py-1.5">
-            <Mic2 size={14} className="animate-pulse text-indigo-600" />
-            Sedang bicara: <span className="font-medium">{activeSpeaker}</span>
+          <span className="flex items-center gap-1.5 text-sm text-ink-soft bg-paper border border-rule rounded-[7px] px-3 py-1.5">
+            <Mic2 size={14} className="animate-pulse text-red" />
+            Sedang bicara: <span className="font-medium text-ink">{activeSpeaker}</span>
           </span>
         )}
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-ink">{error}</p>}
 
       {multiSpeaker && (
         <div className="flex gap-2 flex-wrap text-xs">
           {Array.from(speakerMap.entries()).map(([speaker, meta]) => (
-            <span key={speaker} className={`rounded-full border px-2.5 py-1 ${meta.colorClass}`}>
+            <span key={speaker} className={`rounded-[5px] border px-2.5 py-1 ${meta.colorClass}`}>
               {speaker}
             </span>
           ))}
         </div>
       )}
 
-      <details className="mt-1 text-sm text-neutral-500">
+      <details className="mt-1 text-sm text-ink-soft">
         <summary className="cursor-pointer select-none">
           Tampilkan transkrip (setelah mendengarkan)
         </summary>
@@ -238,8 +231,8 @@ export default function DialoguePlayer({ turns }: Props) {
           {turns.map((t, i) => (
             <p
               key={i}
-              className={`transition ${
-                currentIndex === i ? "font-medium text-neutral-900" : "text-neutral-500"
+              className={`transition-colors ${
+                currentIndex === i ? "font-medium text-ink" : "text-ink-soft"
               }`}
             >
               <span className="font-semibold">{t.speaker}: </span>
