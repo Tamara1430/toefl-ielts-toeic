@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { PACKAGES, getEntitlement, Entitlements, EntitlementLevel } from "@/lib/entitlements";
+import { PACKAGES, getEntitlement, Entitlements, EntitlementLevel, PackageDef } from "@/lib/entitlements";
 import { EXAM_LABELS, ExamType } from "@/lib/examConfig";
 import { Check, Sparkles, Crown, Loader2 } from "lucide-react";
 
@@ -56,6 +56,14 @@ export default function BillingPage() {
 
   const isUltimate = EXAMS.every((exam) => getEntitlement(entitlements, exam) === "premium");
   const isAllFree = EXAMS.every((exam) => getEntitlement(entitlements, exam) === "free");
+
+  function isCurrentPackage(pkg: PackageDef): boolean {
+    if (!loggedIn) return false;
+    if (pkg.tier === "ultimate") return isUltimate;
+    if (isUltimate) return false; // Ultimate already covers every per-exam package
+    if (!pkg.exam) return false;
+    return getEntitlement(entitlements, pkg.exam) === pkg.tier;
+  }
 
   return (
     <main className="min-h-screen bg-paper pb-24">
@@ -128,50 +136,69 @@ export default function BillingPage() {
         </div>
 
         <div className="flex flex-col gap-4">
-          {PACKAGES.map((pkg, i) => (
-            <div
-              key={pkg.id}
-              className="card lift p-5 relative anim-fade-up stagger"
-              style={{
-                ["--d" as string]: `${i * 60}ms`,
-                ...(pkg.recommended ? { borderColor: "var(--gold)", borderWidth: 2 } : {}),
-              }}
-            >
-              {pkg.recommended && (
-                <span
-                  className="absolute -top-3 left-5 inline-flex items-center gap-1 text-surface text-xs font-medium px-3 py-1 rounded-[5px]"
-                  style={{ background: "var(--gold-ink)" }}
-                >
-                  <Sparkles size={12} /> Paling direkomendasikan
-                </span>
-              )}
-              <h2 className="font-bold text-lg text-ink">{pkg.name}</h2>
-              <div className="flex items-baseline gap-2 mt-1 mb-3">
-                {pkg.originalPriceLabel && (
-                  <span className="text-sm text-ink-faint line-through">
-                    {pkg.originalPriceLabel}
+          {PACKAGES.map((pkg, i) => {
+            const owned = isCurrentPackage(pkg);
+            return (
+              <div
+                key={pkg.id}
+                className="card lift p-5 relative anim-fade-up stagger"
+                style={{
+                  ["--d" as string]: `${i * 60}ms`,
+                  ...(pkg.recommended ? { borderColor: "var(--gold)", borderWidth: 2 } : {}),
+                  ...(owned ? { opacity: 0.75 } : {}),
+                }}
+              >
+                {pkg.recommended && !owned && (
+                  <span
+                    className="absolute -top-3 left-5 inline-flex items-center gap-1 text-surface text-xs font-medium px-3 py-1 rounded-[5px]"
+                    style={{ background: "var(--gold-ink)" }}
+                  >
+                    <Sparkles size={12} /> Paling direkomendasikan
                   </span>
                 )}
-                <span className="stat-num text-xl">{pkg.priceLabel}</span>
+                <h2 className="font-bold text-lg text-ink">{pkg.name}</h2>
+                <div className="flex items-baseline gap-2 mt-1 mb-3">
+                  {pkg.originalPriceLabel && (
+                    <span className="text-sm text-ink-faint line-through">
+                      {pkg.originalPriceLabel}
+                    </span>
+                  )}
+                  <span className="stat-num text-xl">{pkg.priceLabel}</span>
+                </div>
+                <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-4">
+                  {pkg.features.map((f, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <Check size={14} className="text-pine shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+
+                {owned ? (
+                  <button
+                    type="button"
+                    disabled
+                    aria-disabled="true"
+                    className="btn w-full sm:w-auto cursor-not-allowed"
+                    style={{ background: "var(--rule)", color: "var(--ink-faint)" }}
+                  >
+                    <Check size={14} /> Ini paketmu sekarang
+                  </button>
+                ) : (
+                  <a
+                    href={waLink(pkg.name)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`btn w-full sm:w-auto ${pkg.recommended ? "" : "btn-primary"}`}
+                    style={
+                      pkg.recommended ? { background: "var(--gold-ink)", color: "var(--surface)" } : undefined
+                    }
+                  >
+                    Hubungi via WhatsApp
+                  </a>
+                )}
               </div>
-              <ul className="text-sm text-ink-soft flex flex-col gap-1.5 mb-4">
-                {pkg.features.map((f, i) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <Check size={14} className="text-pine shrink-0" /> {f}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={waLink(pkg.name)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`btn w-full sm:w-auto ${pkg.recommended ? "" : "btn-primary"}`}
-                style={pkg.recommended ? { background: "var(--gold-ink)", color: "var(--surface)" } : undefined}
-              >
-                Hubungi via WhatsApp
-              </a>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <p className="text-center text-xs text-ink-faint mt-8">
